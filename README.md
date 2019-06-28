@@ -1,8 +1,18 @@
-# botmock-watson-export
-
-> requires node >= 10.15.x
+# Botmock IBM Watson Export Script
 
 Script to transform a [Botmock](https://botmock.com) project into a `.json` file that's importable as a Watson Assistant skill.
+
+- Tutorial Video (Coming Soon)
+- Documentation (Coming Soon)
+- [Support Email](mailto:help@botmock.com)
+
+## Prerequisites
+
+- [Node.js](https://nodejs.org/en/) >= 10.15.x
+
+```shell
+node --version
+```
 
 ## Guide
 
@@ -73,4 +83,4 @@ _NOTE: Make sure to leave any sensitive information out of an issue when reporti
 
 ## License
 
-Botmock Dialogflow Export is copyright © 2019 Botmock. It is free software, and may be redistributed under the terms specified in the LICENSE file.
+Botmock Watson Export is copyright © 2019 Botmock. It is free software, and may be redistributed under the terms specified in the LICENSE file.
