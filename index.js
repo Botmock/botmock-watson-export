@@ -1,10 +1,10 @@
-(await import('dotenv')).config();
-// import { createNodeCollector } from '@botmock-api/utils'
+// import * as utils from '@botmock-api/utils'
 import Botmock from 'botmock';
 import chalk from 'chalk';
 import fs from 'fs';
 import Provider from './lib/Provider';
 import { getArgs, parseVar, toDashCase } from './util';
+import "dotenv/config"
 
 const OUTPUT_PATH = `${process.cwd()}/out`;
 try {
@@ -136,13 +136,11 @@ async function getDialogNodes(platform) {
       default:
         console.warn(
           chalk.dim(
-            `"${
-              message.message_type
-            }" is an unsupported node type and will be coerced to text`
+            `"${message.message_type}" is an unsupported node type and will be coerced to text`
           )
         );
-        response_type = 'text';
-        values = [{ text: JSON.stringify(message.payload) }];
+        generic.response_type = 'text';
+        generic.values = [{ text: JSON.stringify(message.payload) }];
     }
     const [{ message_id: nextMessageId } = {}] = message.next_message_ids;
     nodes.push({
