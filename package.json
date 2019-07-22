@@ -8,7 +8,8 @@
     "start": "node --no-warnings -r esm index.js"
   },
   "prettier": {
-    "singleQuote": true,
+    "trailingComma": "es5",
+    "tabWidth": 2,
     "printWidth": 80
   },
   "esm": {
@@ -32,10 +33,10 @@
   "homepage": "https://github.com/botmock/botmock-watson-export#readme",
   "dependencies": {
     "@botmock-api/utils": "^2.1.0",
-    "arg": "^4.1.0",
+    "arg": "^4.1.1",
     "botmock": "^1.2.0",
     "chalk": "^2.4.2",
-    "dotenv": "^7.0.0",
+    "dotenv": "^8.0.0",
     "esm": "^3.2.22"
   },
   "devDependencies": {
