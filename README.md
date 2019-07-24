@@ -1,6 +1,6 @@
 # Botmock IBM Watson Export Script
 
-Script to transform a [Botmock](https://botmock.com) project into a `.json` file that's importable as a Watson Assistant skill.
+import [Botmock](https://botmock.com) projects as Watson Assistant skills
 
 - Tutorial Video (Coming Soon)
 - Documentation (Coming Soon)

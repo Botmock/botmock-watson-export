@@ -29,7 +29,6 @@
     "type": "git",
     "url": "git+https://github.com/botmock/botmock-watson-export.git"
   },
-  "author": "Kevin Donahue <kevin@botmock.com>",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/botmock/botmock-watson-export/issues"
