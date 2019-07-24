@@ -1,40 +1,45 @@
 import "dotenv/config";
 import fs from "fs";
 import os from "os";
-import Botmock from "botmock";
+import path from "path";
+import assert from "assert";
 import Provider from "./lib/Provider";
-import { getArgs, parseVar, toDashCase } from "./util";
+import getProjectData from "./lib/util/client";
+import { parseVar, toDashCase } from "./lib/util";
 
-const OUTPUT_PATH = `${process.cwd()}/out`;
+type Intent = {
+  name: string;
+  utterances: any[];
+  created_at: { date: string };
+  updated_at: { date: string };
+};
+
+type Message = any;
+
+const MIN_NODE_VERSION = 101600;
+const numericalNodeVersion = parseInt(
+  process.version
+    .slice(1)
+    .split(".")
+    .map(seq => seq.padStart(2, "0"))
+    .join(""),
+  10
+);
 
 try {
-  await fs.promises.access(OUTPUT_PATH, fs.constants.R_OK);
+  assert.strictEqual(numericalNodeVersion < MIN_NODE_VERSION, false);
 } catch (_) {
-  // Create output directory if it does not already exist
-  await fs.promises.mkdir(OUTPUT_PATH);
+  throw "node.js version must be >= 10.16.0";
 }
 
-const {
-  BOTMOCK_TOKEN,
-  BOTMOCK_TEAM_ID,
-  BOTMOCK_PROJECT_ID,
-  BOTMOCK_BOARD_ID,
-} = process.env;
-
-const { isInDebug: debug, hostname: url } = getArgs(process.argv);
-const client = new Botmock({ api_token: BOTMOCK_TOKEN, debug, url });
-const project = await client.projects(BOTMOCK_TEAM_ID, BOTMOCK_PROJECT_ID);
-
-// Map an intent to its correct object representation
-const getIntentCollection = intent => ({
+const getIntent = (intent: Intent) => ({
   intent: toDashCase(intent.name),
   examples: intent.utterances.map(u => ({ text: u.text || "_" })),
   created: intent.created_at.date,
   updated: intent.updated_at.date,
 });
 
-// Map an entity to its correct object representation
-const getEntitiesCollection = entity => ({
+const getEntities = (entity: any) => ({
   entity: toDashCase(entity.name),
   created: entity.created_at.date,
   updated: entity.updated_at.date,
@@ -47,57 +52,69 @@ const getEntitiesCollection = entity => ({
   })),
 });
 
-try {
-  const template = await fs.promises.readFile(
-    `${process.cwd()}/template.json`,
-    "utf8"
-  );
-  const deserializedTemplate = JSON.parse(template);
-  const filepath = `${OUTPUT_PATH}/${toDashCase(project.name)}.json`;
-  await fs.promises.writeFile(
-    filepath,
-    JSON.stringify(
-      {
-        ...deserializedTemplate,
-        dialog_nodes: await getDialogNodes(project.platform),
-        intents: (await client.intents(
-          BOTMOCK_TEAM_ID,
-          BOTMOCK_PROJECT_ID
-        )).map(getIntentCollection),
-        entities: (await client.entities(
-          BOTMOCK_TEAM_ID,
-          BOTMOCK_PROJECT_ID
-        )).map(getEntitiesCollection),
-        created: project.created_at.date,
-        updated: project.updated_at.date,
-        name: project.name,
-      },
-      null,
-      2
-    ) + os.EOL
-  );
-  const { size } = await fs.promises.stat(filepath);
-  console.log(`done. ${os.EOL}wrote ${size / 1000}kB to ${filepath}.`);
-} catch (err) {
-  console.error(err.stack);
-  process.exit(1);
-}
+export const outputPath = path.join(
+  process.cwd(),
+  process.env.OUTPUT_DIR || "output"
+);
 
-// Form collection of nodes from messages in the project
-async function getDialogNodes(platform) {
-  const { board } = await client.boards(
-    BOTMOCK_TEAM_ID,
-    BOTMOCK_PROJECT_ID,
-    BOTMOCK_BOARD_ID
-  );
+(async () => {
+  try {
+    await fs.promises.access(outputPath, fs.constants.R_OK);
+  } catch (_) {
+    await fs.promises.mkdir(outputPath);
+  }
+})();
+
+(async () => {
+  try {
+    const payload = await getProjectData({
+      projectId: process.env.BOTMOCK_PROJECT_ID,
+      boardId: process.env.BOTMOCK_BOARD_ID,
+      teamId: process.env.BOTMOCK_TEAM_ID,
+      token: process.env.BOTMOCK_TOKEN,
+    });
+    const [intents, entities, messages, project] = payload.data;
+    const filepath = `${outputPath}/${toDashCase(project.name)}.json`;
+    await fs.promises.writeFile(
+      filepath,
+      JSON.stringify(
+        {
+          ...JSON.parse(
+            await fs.promises.readFile(`${process.cwd()}/template.json`, "utf8")
+          ),
+          dialog_nodes: await getDialogNodesFromMessages(
+            project.platform,
+            messages
+          ),
+          intents: intents.map(getIntent),
+          entities: entities.map(getEntities),
+          created: project.created_at.date,
+          updated: project.updated_at.date,
+          name: project.name,
+        },
+        null,
+        2
+      ) + os.EOL
+    );
+    const { size } = await fs.promises.stat(filepath);
+    console.log(`done. ${os.EOL}wrote ${size / 1000}kB to ${filepath}.`);
+  } catch (err) {
+    console.error(err);
+    process.exit(1);
+  }
+})();
+
+async function getDialogNodesFromMessages(
+  platform: string,
+  messages: Message[]
+): Promise<any> {
   let i;
   const nodes = [];
   const conditionsMap = {};
   const siblingMap = {};
   const provider = new Provider(platform);
-  // TODO: utils-based fp implementation of this
-  for (const message of board.messages) {
-    // Hold on to sibling nodes to define `previous_sibling` from another node.
+  for (const message of messages) {
+    // hold on to sibling nodes to define `previous_sibling` from another node.
     if (message.next_message_ids.length > 1) {
       siblingMap[message.message_id] = message.next_message_ids.map(
         m => m.message_id
@@ -106,14 +123,14 @@ async function getDialogNodes(platform) {
     let previous_sibling;
     const [prev = {}] = message.previous_message_ids;
     const siblings = siblingMap[prev.message_id] || [];
-    // If there is a sibling with this message id, set the previous_sibling as
+    // if there is a sibling with this message id, set the previous_sibling as
     // the sibling before this one
     if ((i = siblings.findIndex(s => message.message_id === s))) {
       previous_sibling = siblings[i - 1];
     }
-    // Coerce types to their watson equivalents
+    // coerce types to their watson equivalents
     // see https://cloud.ibm.com/docs/services/assistant?topic=assistant-dialog-responses-json
-    const generic = {};
+    const generic: any = {};
     switch (message.message_type) {
       case "image":
         generic.response_type = "image";
@@ -146,7 +163,9 @@ async function getDialogNodes(platform) {
         generic.response_type = "text";
         generic.values = [{ text: JSON.stringify(message.payload) }];
     }
-    const [{ message_id: nextMessageId } = {}] = message.next_message_ids;
+    const [
+      { message_id: nextMessageId } = { message_id: "" },
+    ] = message.next_message_ids;
     nodes.push({
       output: {
         ...(platform === "slack"
