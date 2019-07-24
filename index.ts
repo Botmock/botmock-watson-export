@@ -207,7 +207,7 @@ async function getDialogNodesFromMessages(
           )
         : {},
     });
-    // Maintain lookup table relating message_id -> intent incident on it
+    // maintain lookup table relating message_id -> intent incident on it
     for (const y of message.next_message_ids) {
       if (!y.action.payload) {
         continue;
