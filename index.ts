@@ -14,6 +14,7 @@ type Intent = {
   updated_at: { date: string };
 };
 
+type Entity = any;
 type Message = any;
 
 const MIN_NODE_VERSION = 101600;
@@ -39,7 +40,7 @@ const getIntent = (intent: Intent) => ({
   updated: intent.updated_at.date,
 });
 
-const getEntities = (entity: any) => ({
+const getEntities = (entity: Entity) => ({
   entity: toDashCase(entity.name),
   created: entity.created_at.date,
   updated: entity.updated_at.date,

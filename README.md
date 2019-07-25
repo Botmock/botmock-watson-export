@@ -8,7 +8,7 @@ import [Botmock](https://botmock.com) projects as Watson Assistant skills
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org/en/) >= 10.15.x
+- [Node.js](https://nodejs.org/en/) >= 10.16.x
 
 ```shell
 node --version
@@ -110,7 +110,7 @@ The generated `.json` file should look something like:
 
 ## Want to help?
 
-Found bugs or have some ideas to improve this plugin? We'd love to to hear from you! You can start by submitting an issue at the [Issues](https://github.com/Botmock/botmock-watson-export/issues) tab. If you want, feel free to submit a pull request and propose a change as well!
+Found bugs or have some ideas to improve this repo? We'd love to to hear from you! You can start by submitting an issue at the [Issues](https://github.com/Botmock/botmock-watson-export/issues) tab. If you want, feel free to submit a pull request and propose a change as well!
 
 ### Submitting a Pull Request
 
