@@ -1,18 +1,23 @@
 {
   "name": "botmock-watson-export",
   "version": "1.0.0",
-  "description": "transform Botmock projects into Watson Assistant skills",
-  "main": "index.js",
+  "description": "import Botmock projects as Watson Assistant skills",
   "scripts": {
     "test": "jest",
-    "start": "node --no-warnings -r esm index.js"
+    "start": "ts-node index.ts"
   },
   "prettier": {
-    "singleQuote": true,
+    "trailingComma": "es5",
+    "tabWidth": 2,
     "printWidth": 80
   },
-  "esm": {
-    "await": true
+  "jest": {
+    "preset": "ts-jest",
+    "globals": {
+      "ts-jest": {
+        "tsConfig": "tsconfig.json"
+      }
+    }
   },
   "keywords": [
     "ibm",
@@ -24,7 +29,6 @@
     "type": "git",
     "url": "git+https://github.com/botmock/botmock-watson-export.git"
   },
-  "author": "Kevin Donahue <kevin@botmock.com>",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/botmock/botmock-watson-export/issues"
@@ -32,13 +36,18 @@
   "homepage": "https://github.com/botmock/botmock-watson-export#readme",
   "dependencies": {
     "@botmock-api/utils": "^2.1.0",
-    "arg": "^4.1.0",
+    "arg": "^4.1.1",
     "botmock": "^1.2.0",
     "chalk": "^2.4.2",
-    "dotenv": "^7.0.0",
+    "dotenv": "^8.0.0",
     "esm": "^3.2.22"
   },
   "devDependencies": {
-    "jest": "^24.7.1"
+    "@types/jest": "^24.0.15",
+    "@types/node": "^12.6.8",
+    "jest": "^24.8.0",
+    "ts-jest": "^24.0.2",
+    "ts-node": "^8.3.0",
+    "typescript": "^3.5.3"
   }
 }

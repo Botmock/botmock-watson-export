@@ -1,6 +1,8 @@
-module.exports = class Provider {
+export default class Provider {
+  public platform: any;
+
   constructor(p) {
-    if (p !== 'generic') {
+    if (p !== "generic") {
       const mod = require(`./${p.replace(
         /^\w/,
         p.substr(0, 1).toUpperCase()
@@ -11,4 +13,4 @@ module.exports = class Provider {
   create(type, payload) {
     return this.platform[type](payload);
   }
-};
+}
