@@ -1,13 +1,22 @@
+class Generic {
+  text({ attachments }): any {
+    return attachments;
+  }
+}
+
 export default class Provider {
   public platform: any;
+  private supportedPlatforms = ["facebook", "slack"];
 
-  constructor(p) {
-    if (p !== "generic") {
-      const mod = require(`./${p.replace(
+  constructor(platform: string) {
+    if (this.supportedPlatforms.includes(platform)) {
+      const mod = require(`./${platform.replace(
         /^\w/,
-        p.substr(0, 1).toUpperCase()
+        platform.substr(0, 1).toUpperCase()
       )}`);
       this.platform = new mod();
+    } else {
+      this.platform = new Generic();
     }
   }
   create(type, payload) {
