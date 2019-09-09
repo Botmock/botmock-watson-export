@@ -12,6 +12,7 @@ const INTENTS = "intents";
 const ENTITIES = "entities";
 const PROJECT = "";
 
+// collect project data from endpoints
 export default async function getProjectData({
   projectId,
   boardId,
@@ -19,7 +20,6 @@ export default async function getProjectData({
   token,
 }: ProjectVariables): Promise<any> {
   const baseUrl = `${BOTMOCK_API_URL}/teams/${teamId}/projects/${projectId}`;
-  // collect project data from endpoints
   const data = await Promise.all(
     [INTENTS, ENTITIES, `boards/${boardId}`, PROJECT].map(async path => {
       const res = await fetch(`${baseUrl}/${path}`, {
@@ -29,7 +29,6 @@ export default async function getProjectData({
         },
       });
       if (!res.ok) {
-        // console.error(res);
         throw new Error(`failed to fetch ${res.url}`);
       }
       console.info(`${path.match(/[a-z]{6,8}/gi) || "project"} fetched.`);

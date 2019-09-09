@@ -1,4 +1,6 @@
 import "dotenv/config";
+// import chalk from "chalk";
+// import { remove } from "fs-extra";
 import fs from "fs";
 import os from "os";
 import path from "path";
@@ -14,7 +16,12 @@ type Intent = {
   updated_at: { date: string };
 };
 
-type Entity = any;
+type Entity = {
+  name: string;
+  created_at: { date: string };
+  updated_at: { date: string };
+  data: any;
+};
 type Message = any;
 
 const MIN_NODE_VERSION = 101600;
@@ -188,12 +195,12 @@ async function getDialogNodesFromMessages(
         ? {
             behavior: "skip_user_input",
             selector: "body",
-            dialog_node: nextMessageId,
+            dialog_node: nextMessageId || undefined,
           }
         : {
             behavior: "jump_to",
             selector: message.is_root ? "body" : "user_input",
-            dialog_node: nextMessageId,
+            dialog_node: nextMessageId || undefined,
           },
       previous_sibling,
       conditions: message.is_root
