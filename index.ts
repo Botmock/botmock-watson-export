@@ -1,6 +1,5 @@
 import "dotenv/config";
 // import { createIntentMap } from "@botmock-api/utils";
-// import { remove } from "fs-extra";
 import chalk from "chalk";
 import fs from "fs";
 import os from "os";
@@ -12,7 +11,7 @@ import { parseVar, toDashCase } from "./lib/util";
 
 type Intent = {
   name: string;
-  utterances: any[];
+  utterances: { text: string }[];
   created_at: { date: string };
   updated_at: { date: string };
 };
@@ -23,19 +22,19 @@ type Entity = {
   updated_at: { date: string };
   data: any;
 };
+
 type Message = any;
 
-const MIN_NODE_VERSION = 101600;
-const numericalNodeVersion = parseInt(
-  process.version
-    .slice(1)
-    .split(".")
-    .map(seq => seq.padStart(2, "0"))
-    .join(""),
-  10
-);
-
 try {
+  const MIN_NODE_VERSION = 101600;
+  const numericalNodeVersion = parseInt(
+    process.version
+      .slice(1)
+      .split(".")
+      .map(seq => seq.padStart(2, "0"))
+      .join(""),
+    10
+  );
   assert.strictEqual(numericalNodeVersion < MIN_NODE_VERSION, false);
 } catch (_) {
   throw "node.js version must be >= 10.16.0";
@@ -118,8 +117,9 @@ export const outputPath = path.join(
 async function getDialogNodesFromMessages(
   platform: string,
   messages: Message[]
-): Promise<any> {
-  let i;
+): Promise<any[]> {
+  const FALLBACK_CONDITION = "anything_else"
+  let i: void | number;
   const nodes = [];
   const conditionsMap = {};
   const siblingMap = {};
@@ -177,6 +177,8 @@ async function getDialogNodesFromMessages(
     const [
       { message_id: nextMessageId } = { message_id: "" },
     ] = message.next_message_ids;
+    // console.log(message.message_id)
+    // console.log(conditionsMap);
     nodes.push({
       output: {
         ...(platform === "slack"
@@ -208,7 +210,7 @@ async function getDialogNodesFromMessages(
       previous_sibling,
       conditions: message.is_root
         ? "welcome"
-        : conditionsMap[message.message_id] || "anything_else",
+        : conditionsMap[message.message_id] || FALLBACK_CONDITION,
       parent: prev.message_id,
       dialog_node: message.message_id,
       context: Array.isArray(message.payload.context)
@@ -218,12 +220,12 @@ async function getDialogNodesFromMessages(
           )
         : {},
     });
-    // maintain lookup table relating message_id -> intent incident on it
-    for (const y of message.next_message_ids) {
-      if (!y.action.payload) {
+    for (const { message_id, intent } of message.next_message_ids) {
+      if (typeof intent === "string" || !intent.value) {
         continue;
       }
-      conditionsMap[y.message_id] = `#${toDashCase(y.action.payload)}`;
+      // set the condition for this next message id to the intent
+      conditionsMap[message_id] = `#${toDashCase(intent.label)}`;
     }
   }
   return nodes;
