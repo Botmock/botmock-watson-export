@@ -1,6 +1,7 @@
 import "dotenv/config";
-// import chalk from "chalk";
+// import { createIntentMap } from "@botmock-api/utils";
 // import { remove } from "fs-extra";
+import chalk from "chalk";
 import fs from "fs";
 import os from "os";
 import path from "path";
@@ -105,7 +106,9 @@ export const outputPath = path.join(
       ) + os.EOL
     );
     const { size } = await fs.promises.stat(filepath);
-    console.log(`done. ${os.EOL}wrote ${size / 1000}kB to ${filepath}.`);
+    console.info(
+      chalk.dim(`> done. ${os.EOL}> wrote ${size / 1000}kB to ${filepath}`)
+    );
   } catch (err) {
     console.error(err);
     process.exit(1);
