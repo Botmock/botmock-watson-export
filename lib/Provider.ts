@@ -1,8 +1,10 @@
 class Generic {
-  text({ attachments }): any {
-    return attachments;
+  text(data: { attachments: any[] }): any {
+    return data.attachments;
   }
 }
+
+interface Payload {}
 
 export default class Provider {
   public platform: any;
@@ -19,7 +21,7 @@ export default class Provider {
       this.platform = new Generic();
     }
   }
-  create(type, payload) {
+  create(type: string, payload: Payload) {
     return this.platform[type](payload);
   }
 }
