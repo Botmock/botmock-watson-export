@@ -1,232 +1,261 @@
 import "dotenv/config";
-// import { createIntentMap } from "@botmock-api/utils";
-import chalk from "chalk";
-import fs from "fs";
-import os from "os";
-import path from "path";
-import assert from "assert";
-import Provider from "./lib/Provider";
-import getProjectData from "./lib/util/client";
-import { parseVar, toDashCase } from "./lib/util";
+import { Batcher } from "@botmock-api/client";
+// import { default as log } from "@botmock-api/log";
+import { remove, mkdirp, writeJson } from "fs-extra";
+import { EOL } from "os";
+import { join } from "path";
+import { default as log } from "./lib/log";
+import { default as FileWriter } from "./lib/file";
 
-type Intent = {
-  name: string;
-  utterances: { text: string }[];
-  created_at: { date: string };
-  updated_at: { date: string };
-};
-
-type Entity = {
-  name: string;
-  created_at: { date: string };
-  updated_at: { date: string };
-  data: any;
-};
-
-type Message = any;
-
-try {
-  const MIN_NODE_VERSION = 101600;
-  const numericalNodeVersion = parseInt(
-    process.version
-      .slice(1)
-      .split(".")
-      .map(seq => seq.padStart(2, "0"))
-      .join(""),
-    10
-  );
-  assert.strictEqual(numericalNodeVersion < MIN_NODE_VERSION, false);
-} catch (_) {
-  throw "node.js version must be >= 10.16.0";
+interface Paths {
+  readonly outputPath: string;
 }
 
-const getIntent = (intent: Intent) => ({
-  intent: toDashCase(intent.name),
-  examples: intent.utterances.map(u => ({ text: u.text || "_" })),
-  created: intent.created_at.date,
-  updated: intent.updated_at.date,
-});
-
-const getEntities = (entity: Entity) => ({
-  entity: toDashCase(entity.name),
-  created: entity.created_at.date,
-  updated: entity.updated_at.date,
-  values: entity.data.map(({ value, synonyms }) => ({
-    type: "synonyms",
-    value,
-    synonyms: !Array.isArray(synonyms)
-      ? synonyms.map(toDashCase).split(",")
-      : synonyms,
-  })),
-});
-
-export const outputPath = path.join(
-  process.cwd(),
-  process.env.OUTPUT_DIR || "output"
-);
-
-(async () => {
-  try {
-    await fs.promises.access(outputPath, fs.constants.R_OK);
-  } catch (_) {
-    await fs.promises.mkdir(outputPath);
-  }
-})();
-
-(async () => {
-  try {
-    const payload = await getProjectData({
-      projectId: process.env.BOTMOCK_PROJECT_ID,
-      boardId: process.env.BOTMOCK_BOARD_ID,
-      teamId: process.env.BOTMOCK_TEAM_ID,
-      token: process.env.BOTMOCK_TOKEN,
-    });
-    const [intents, entities, messages, project] = payload.data;
-    const filepath = `${outputPath}/${toDashCase(project.name)}.json`;
-    await fs.promises.writeFile(
-      filepath,
-      JSON.stringify(
-        {
-          ...JSON.parse(
-            await fs.promises.readFile(`${process.cwd()}/template.json`, "utf8")
-          ),
-          dialog_nodes: await getDialogNodesFromMessages(
-            project.platform,
-            messages
-          ),
-          intents: intents.map(getIntent),
-          entities: entities.map(getEntities),
-          created: project.created_at.date,
-          updated: project.updated_at.date,
-          name: project.name,
-        },
-        null,
-        2
-      ) + os.EOL
-    );
-    const { size } = await fs.promises.stat(filepath);
-    console.info(
-      chalk.dim(`> done. ${os.EOL}> wrote ${size / 1000}kB to ${filepath}`)
-    );
-  } catch (err) {
-    console.error(err);
-    process.exit(1);
-  }
-})();
-
-async function getDialogNodesFromMessages(
-  platform: string,
-  messages: Message[]
-): Promise<any[]> {
-  const FALLBACK_CONDITION = "anything_else"
-  let i: void | number;
-  const nodes = [];
-  const conditionsMap = {};
-  const siblingMap = {};
-  const provider = new Provider(platform);
-  for (const message of messages) {
-    // hold on to sibling nodes to define `previous_sibling` from another node.
-    if (message.next_message_ids.length > 1) {
-      siblingMap[message.message_id] = message.next_message_ids.map(
-        m => m.message_id
-      );
-    }
-    let previous_sibling;
-    const [prev = {}] = message.previous_message_ids;
-    const siblings = siblingMap[prev.message_id] || [];
-    // if there is a sibling with this message id, set the previous_sibling as
-    // the sibling before this one
-    if ((i = siblings.findIndex(s => message.message_id === s))) {
-      previous_sibling = siblings[i - 1];
-    }
-    // coerce types to their watson equivalents
-    // see https://cloud.ibm.com/docs/services/assistant?topic=assistant-dialog-responses-json
-    const generic: any = {};
-    switch (message.message_type) {
-      case "image":
-        generic.response_type = "image";
-        generic.source = message.payload.image_url;
-        break;
-      case "button":
-      case "quick_replies":
-        const transformPayload = value => ({
-          label: value.title,
-          value: {
-            input: {
-              text: value.payload,
-            },
-          },
-        });
-        generic.response_type = "option";
-        generic.title = message.payload.text || "";
-        generic.options = message.payload.hasOwnProperty(message.message_type)
-          ? message.payload[message.message_type].map(transformPayload)
-          : message.payload[`${message.message_type}s`].map(transformPayload);
-        break;
-      case "text":
-        generic.response_type = "text";
-        generic.values = [{ text: message.payload.text || "" }];
-        break;
-      default:
-        console.warn(
-          `"${message.message_type}" is an unsupported node type and will be coerced to text`
-        );
-        generic.response_type = "text";
-        generic.values = [{ text: JSON.stringify(message.payload) }];
-    }
-    const [
-      { message_id: nextMessageId } = { message_id: "" },
-    ] = message.next_message_ids;
-    // console.log(message.message_id)
-    // console.log(conditionsMap);
-    nodes.push({
-      output: {
-        ...(platform === "slack"
-          ? {
-              [platform]: provider.create(
-                message.message_type,
-                message.payload
-              ),
-            }
-          : {}),
-        generic: [generic],
-      },
-      title: message.payload.nodeName
-        ? toDashCase(message.payload.nodeName)
-        : "welcome",
-      next_step: message.next_message_ids.every(
-        message => !message.action.payload
-      )
-        ? {
-            behavior: "skip_user_input",
-            selector: "body",
-            dialog_node: nextMessageId || undefined,
-          }
-        : {
-            behavior: "jump_to",
-            selector: message.is_root ? "body" : "user_input",
-            dialog_node: nextMessageId || undefined,
-          },
-      previous_sibling,
-      conditions: message.is_root
-        ? "welcome"
-        : conditionsMap[message.message_id] || FALLBACK_CONDITION,
-      parent: prev.message_id,
-      dialog_node: message.message_id,
-      context: Array.isArray(message.payload.context)
-        ? message.payload.context.reduce(
-            (acc, k) => ({ ...acc, [parseVar(k.name)]: k.default_value }),
-            {}
-          )
-        : {},
-    });
-    for (const { message_id, intent } of message.next_message_ids) {
-      if (typeof intent === "string" || !intent.value) {
-        continue;
-      }
-      // set the condition for this next message id to the intent
-      conditionsMap[message_id] = `#${toDashCase(intent.label)}`;
-    }
-  }
-  return nodes;
+/**
+ * Removes and then creates the directories that hold generated files
+ * @param paths object containing paths to directories that will hold files
+ * generated by the script
+ * @returns Promise<void>
+ */
+async function recreateOutputDirectories(paths: Paths): Promise<void> {
+  const { outputPath } = paths;
+  await remove(outputPath);
+  await mkdirp(outputPath);
 }
+
+/**
+ * Calls all fetch methods and calls all write methods
+ *
+ * @remark entry point to the script
+ *
+ * @param args string[]
+ * @returns Promise<void>
+ */
+async function main(args: string[]): Promise<void> {
+  const DEFAULT_OUTPUT = "output";
+  let [, , outputDirectory] = args;
+  if (typeof outputDirectory === "undefined") {
+    outputDirectory = process.env.OUTPUT_DIR || DEFAULT_OUTPUT;
+  }
+  log("creating output directories");
+  await recreateOutputDirectories({ outputPath: outputDirectory, });
+  log("fetching project data");
+  const { data: projectData } = await new Batcher({
+    token: process.env.BOTMOCK_TOKEN,
+    teamId: process.env.BOTMOCK_TEAM_ID,
+    projectId: process.env.BOTMOCK_PROJECT_ID,
+    boardId: process.env.BOTMOCK_BOARD_ID,
+  }).batchRequest([
+    "project",
+    "board",
+    "intents",
+    "entities",
+    "variables"
+  ]);
+  log("writing files");
+  const fileWriter = new FileWriter({
+    outputDirectory,
+    projectData
+  });
+  fileWriter.on("write-complete", ({ basename }) => {
+    log(`wrote ${basename}`);
+  });
+  await fileWriter.write();
+}
+
+process.on("unhandledRejection", () => {});
+process.on("uncaughtException", () => {});
+
+main(process.argv).catch(async (err: Error) => {
+  log(err.stack, { isQuiet: true });
+  if (process.env.OPT_IN_ERROR_REPORTING) {
+    // Sentry.captureException(err);
+  } else {
+    const { message, stack } = err;
+    await writeJson(join(__dirname, "err.json"), { message, stack }, { EOL, spaces: 2 });
+  }
+});
+
+
+// const getIntent = (intent: any) => ({
+//   intent: toDashCase(intent.name),
+//   examples: intent.utterances.map(u => ({ text: u.text || "_" })),
+//   created: intent.created_at.date,
+//   updated: intent.updated_at.date,
+// });
+
+// const getEntities = (entity: any) => ({
+//   entity: toDashCase(entity.name),
+//   created: entity.created_at.date,
+//   updated: entity.updated_at.date,
+//   values: entity.data.map(({ value, synonyms }) => ({
+//     type: "synonyms",
+//     value,
+//     synonyms: !Array.isArray(synonyms)
+//       ? synonyms.map(toDashCase).split(",")
+//       : synonyms,
+//   })),
+// });
+
+// export const outputPath = join(
+//   process.cwd(),
+//   process.env.OUTPUT_DIR || "output"
+// );
+
+// (async () => {
+//   try {
+//     const payload = await getProjectData({
+//       projectId: process.env.BOTMOCK_PROJECT_ID,
+//       boardId: process.env.BOTMOCK_BOARD_ID,
+//       teamId: process.env.BOTMOCK_TEAM_ID,
+//       token: process.env.BOTMOCK_TOKEN,
+//     });
+//     const [intents, entities, messages, project] = payload.data;
+//     const filepath = `${outputPath}/${toDashCase(project.name)}.json`;
+//     await writeFile(
+//       filepath,
+//       JSON.stringify(
+//         {
+//           ...JSON.parse(
+//             await readFile(`${process.cwd()}/template.json`, "utf8")
+//           ),
+//           dialog_nodes: await getDialogNodesFromMessages(
+//             project.platform,
+//             messages
+//           ),
+//           intents: intents.map(getIntent),
+//           entities: entities.map(getEntities),
+//           created: project.created_at.date,
+//           updated: project.updated_at.date,
+//           name: project.name,
+//         },
+//         null,
+//         2
+//       ) + EOL
+//     );
+//     const { size } = await stat(filepath);
+//     console.info(
+//       chalk.dim(`> done. ${EOL}> wrote ${size / 1000}kB to ${filepath}`)
+//     );
+//   } catch (err) {
+//     console.error(err);
+//     process.exit(1);
+//   }
+// })();
+
+// async function getDialogNodesFromMessages(
+//   platform: string,
+//   messages: any[]
+// ): Promise<any[]> {
+//   const FALLBACK_CONDITION = "anything_else"
+//   let i: void | number;
+//   const nodes = [];
+//   const conditionsMap = {};
+//   const siblingMap = {};
+//   const provider = new PlatformProvider(platform);
+//   for (const message of messages) {
+//     // hold on to sibling nodes to define `previous_sibling` from another node.
+//     if (message.next_message_ids.length > 1) {
+//       siblingMap[message.message_id] = message.next_message_ids.map(
+//         m => m.message_id
+//       );
+//     }
+//     let previous_sibling;
+//     const [prev = {}] = message.previous_message_ids;
+//     const siblings = siblingMap[prev.message_id] || [];
+//     // if there is a sibling with this message id, set the previous_sibling as
+//     // the sibling before this one
+//     if ((i = siblings.findIndex(s => message.message_id === s))) {
+//       previous_sibling = siblings[i - 1];
+//     }
+//     // coerce types to their watson equivalents
+//     // see https://cloud.ibm.com/docs/services/assistant?topic=assistant-dialog-responses-json
+//     const generic: any = {};
+//     switch (message.message_type) {
+//       case "image":
+//         generic.response_type = "image";
+//         generic.source = message.payload.image_url;
+//         break;
+//       case "button":
+//       case "quick_replies":
+//         const transformPayload = value => ({
+//           label: value.title,
+//           value: {
+//             input: {
+//               text: value.payload,
+//             },
+//           },
+//         });
+//         generic.response_type = "option";
+//         generic.title = message.payload.text || "";
+//         generic.options = message.payload.hasOwnProperty(message.message_type)
+//           ? message.payload[message.message_type].map(transformPayload)
+//           : message.payload[`${message.message_type}s`].map(transformPayload);
+//         break;
+//       case "text":
+//         generic.response_type = "text";
+//         generic.values = [{ text: message.payload.text || "" }];
+//         break;
+//       default:
+//         console.warn(
+//           `"${message.message_type}" is an unsupported node type and will be coerced to text`
+//         );
+//         generic.response_type = "text";
+//         generic.values = [{ text: JSON.stringify(message.payload) }];
+//     }
+//     const [
+//       { message_id: nextMessageId } = { message_id: "" },
+//     ] = message.next_message_ids;
+//     // console.log(message.message_id)
+//     // console.log(conditionsMap);
+//     nodes.push({
+//       output: {
+//         ...(platform === "slack"
+//           ? {
+//               [platform]: provider.create(
+//                 message.message_type,
+//                 message.payload
+//               ),
+//             }
+//           : {}),
+//         generic: [generic],
+//       },
+//       title: message.payload.nodeName
+//         ? toDashCase(message.payload.nodeName)
+//         : "welcome",
+//       next_step: message.next_message_ids.every(
+//         message => !message.action.payload
+//       )
+//         ? {
+//             behavior: "skip_user_input",
+//             selector: "body",
+//             dialog_node: nextMessageId || undefined,
+//           }
+//         : {
+//             behavior: "jump_to",
+//             selector: message.is_root ? "body" : "user_input",
+//             dialog_node: nextMessageId || undefined,
+//           },
+//       previous_sibling,
+//       conditions: message.is_root
+//         ? "welcome"
+//         : conditionsMap[message.message_id] || FALLBACK_CONDITION,
+//       parent: prev.message_id,
+//       dialog_node: message.message_id,
+//       context: Array.isArray(message.payload.context)
+//         ? message.payload.context.reduce(
+//             (acc, k) => ({ ...acc, [parseVar(k.name)]: k.default_value }),
+//             {}
+//           )
+//         : {},
+//     });
+//     for (const { message_id, intent } of message.next_message_ids) {
+//       if (typeof intent === "string" || !intent.value) {
+//         continue;
+//       }
+//       // set the condition for this next message id to the intent
+//       conditionsMap[message_id] = `#${toDashCase(intent.label)}`;
+//     }
+//   }
+//   return nodes;
+// }
