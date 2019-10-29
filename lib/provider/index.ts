@@ -32,8 +32,10 @@ export default class PlatformProvider {
     switch (contentBlockType) {
       case "api":
       case "jump":
-      case "delay":
         methodToCallOnClass = undefined;
+        break;
+      case "delay":
+        methodToCallOnClass = "pause";
         break;
       case "quick_replies":
       case "button":

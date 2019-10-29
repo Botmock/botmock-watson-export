@@ -82,9 +82,20 @@ export default class FileWriter extends flow.AbstractProject {
     return Array.from(this.boardStructureByMessages.entries())
       .reduce((acc, messageAndConnectedIntents) => {
         const [idOfConnectedMessage, idsOfConnectedIntents] = messageAndConnectedIntents;
+        const message = this.getMessage(idOfConnectedMessage) as flow.Message;
+        const messagesImplicitInConenctedMessage: ReadonlyArray<unknown> = [];
+        const messagesExplicitInConnectedMessage: ReadonlyArray<unknown> = [
+          message,
+          ...this.gatherMessagesUpToNextIntent(message)
+        ];
         return [
           ...acc,
-          ...[],
+          ...[
+            ...messagesImplicitInConenctedMessage,
+            ...messagesExplicitInConnectedMessage
+          ].map((message: flow.Message) => (
+            platformProvider.create(message.message_type, message.payload)
+          )),
         ];
       }, []);
   }
