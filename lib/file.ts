@@ -28,10 +28,12 @@ export default class FileWriter extends flow.AbstractProject {
   static status = "Available";
   private boardStructureByMessages: flow.SegmentizedStructure;
   private readonly outputDirectory: string;
+  private readonly firstMessage: unknown;
   /**
    * Creates new instance of FileWriter class
    * 
-   * @remarks ..
+   * @remarks Creates artificial welcome intent between the root node and the
+   * first message if no intent is present
    * 
    * @param config Object containing project data and path to output directory
    */
@@ -39,9 +41,20 @@ export default class FileWriter extends flow.AbstractProject {
     super({ projectData: config.projectData as ProjectData<typeof config.projectData> });
     this.outputDirectory = config.outputDirectory;
     this.boardStructureByMessages = this.segmentizeBoardFromMessages();
+    const { root_messages } = this.projectData.board.board;
+    const [idOfRootMessage] = root_messages;
+    if (!this.boardStructureByMessages.get(idOfRootMessage)) {
+      const rootMessage = this.getMessage(idOfRootMessage) as flow.Message;
+      const [firstMessage] = rootMessage.next_message_ids as flow.NextMessage[];
+      this.firstMessage = firstMessage;
+      this.boardStructureByMessages.set(firstMessage.message_id, Array.of(uuid()));
+    }
   }
   /**
    * Creates array of interrelated dialog nodes from flow structure
+   * 
+   * @remarks ..
+   * 
    * @returns ReadonlyArray<unknown>
    */
   private mapDialogNodesForProject(): ReadonlyArray<unknown> {
