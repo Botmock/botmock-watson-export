@@ -3,13 +3,11 @@ import { writeJson } from "fs-extra";
 import { default as uuid } from "uuid/v4";
 import { EOL } from "os";
 import { join } from "path";
-// import { default as PlatformProvider } from "./provider";
+import { default as PlatformProvider } from "./provider";
 
-type ProjectData<T> = T extends Promise<infer K>[] ? K : any;
+export type ProjectData<T> = T extends Promise<infer K> ? K : any;
 
-// type DialogNode<T extends { [key: string]: any }> = {};
-
-enum DialogNodeTypes {
+export enum DialogNodeTypes {
   handler = "event_handler",
   frame = "frame",
   slot = "slot",
@@ -27,6 +25,7 @@ export default class FileWriter extends flow.AbstractProject {
   static minorVersion = "2018-09-20";
   static status = "Available";
   private boardStructureByMessages: flow.SegmentizedStructure;
+  private requiredSlotStructure: flow.SlotStructure;
   private readonly outputDirectory: string;
   private readonly firstMessage: unknown;
   /**
@@ -40,6 +39,7 @@ export default class FileWriter extends flow.AbstractProject {
   constructor(config: IConfig) {
     super({ projectData: config.projectData as ProjectData<typeof config.projectData> });
     this.outputDirectory = config.outputDirectory;
+    this.requiredSlotStructure = this.representRequirementsForIntents();
     this.boardStructureByMessages = this.segmentizeBoardFromMessages();
     const { root_messages } = this.projectData.board.board;
     const [idOfRootMessage] = root_messages;
@@ -51,6 +51,24 @@ export default class FileWriter extends flow.AbstractProject {
     }
   }
   /**
+   * Finds the dialog node that has this node as its child
+   * @param nodeId id of the node whose parent must be found
+   * @returns the node id of the parent
+   * @todo
+   */
+  private findSegmentedParentOfDialogNode(nodeId: string): string | void {
+    return "";
+  }
+  /**
+   * Gets any intent necessary for node id
+   * @param nodeId id of the node whose conditions must be found
+   * @returns the name of any necessary condition
+   * @todo
+   */
+  private getConditionsForDialogNode(nodeId: string): string | void {
+    return "";
+  }
+  /**
    * Creates array of interrelated dialog nodes from flow structure
    * 
    * @remarks ..
@@ -58,12 +76,15 @@ export default class FileWriter extends flow.AbstractProject {
    * @returns ReadonlyArray<unknown>
    */
   private mapDialogNodesForProject(): ReadonlyArray<unknown> {
+    const { platform } = this.projectData.project;
+    const platformProvider = new PlatformProvider(platform);
     return Array.from(this.boardStructureByMessages.entries())
       .reduce((acc, messageAndConnectedIntents) => {
-        const nodesImpliedByMessageAndConnectedIntents = [];
+        const [idOfConnectedMessage, idsOfConnectedIntents] = messageAndConnectedIntents;
+        const dialogNodesImpliedByCurrentConnectedMessage: ReadonlyArray<unknown> = [];
         return [
           ...acc,
-          ...nodesImpliedByMessageAndConnectedIntents,
+          ...dialogNodesImpliedByCurrentConnectedMessage,
         ];
       }, []);
   }
@@ -88,11 +109,8 @@ export default class FileWriter extends flow.AbstractProject {
       name,
       intents: this.projectData.intents.map(intent => ({
         intent: intent.name,
-        description: JSON.stringify({
-          // @ts-ignore
-          createdAt: intent.created_at.date,
-          isGlobal: intent.is_global,
-        }),
+        // @ts-ignore
+        description: intent.created_at.date,
         examples: intent.utterances.map(utterance => ({
           text: this.getSanitizedEntityName(utterance.text),
           mentions: utterance.variables.map(variable => {
