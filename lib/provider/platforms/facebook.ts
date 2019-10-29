@@ -5,6 +5,6 @@ export default class Facebook {
    * @returns object
    */
   text(data: any): object {
-    return data.attachments;
+    return {};
   }
 };

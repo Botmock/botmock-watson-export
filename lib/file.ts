@@ -213,17 +213,17 @@ export default class FileWriter extends flow.AbstractProject {
           major_version: FileWriter.majorVersion,
           minor_version: FileWriter.minorVersion,
         },
-        skill_id: uuid(),
-        description: "",
-        dialog_nodes: this.mapDialogNodesForProject(),
-        workspace_id: uuid(),
-        counterexamples: [],
-        system_settings: {
-          spelling_auto_correct: true,
-        },
-        learning_opt_out: false,
-        status: FileWriter.status,
-      }
+      },
+      skill_id: uuid(),
+      description: "",
+      dialog_nodes: this.mapDialogNodesForProject(),
+      workspace_id: uuid(),
+      counterexamples: [],
+      system_settings: {
+        spelling_auto_correct: true,
+      },
+      learning_opt_out: false,
+      status: FileWriter.status,
     };
     await writeJson(join(this.outputDirectory, `${name}.json`), skillData, { EOL, spaces: 2 });
   }
