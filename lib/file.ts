@@ -71,7 +71,8 @@ export default class FileWriter extends flow.AbstractProject {
   /**
    * Creates array of interrelated dialog nodes from flow structure
    * 
-   * @remarks ..
+   * @remarks on each iteration over board structure by messages,
+   * adds 1-2 dialog nodes to the accumulator based on required intents
    * 
    * @returns ReadonlyArray<unknown>
    */
@@ -81,10 +82,9 @@ export default class FileWriter extends flow.AbstractProject {
     return Array.from(this.boardStructureByMessages.entries())
       .reduce((acc, messageAndConnectedIntents) => {
         const [idOfConnectedMessage, idsOfConnectedIntents] = messageAndConnectedIntents;
-        const dialogNodesImpliedByCurrentConnectedMessage: ReadonlyArray<unknown> = [];
         return [
           ...acc,
-          ...dialogNodesImpliedByCurrentConnectedMessage,
+          ...[],
         ];
       }, []);
   }

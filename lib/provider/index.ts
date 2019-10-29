@@ -35,14 +35,16 @@ export default class PlatformProvider {
       case "delay":
         methodToCallOnClass = undefined;
         break;
+      case "quick_replies":
       case "button":
-        methodToCallOnClass = "quick_replies";
-      case "generic":
-        methodToCallOnClass = "card";
+        methodToCallOnClass = "option";
         break;
-      case "carousel":
-        methodToCallOnClass = "list";
-        break;
+      // case "generic":
+      //   methodToCallOnClass = "card";
+      //   break;
+      // case "carousel":
+      //   methodToCallOnClass = "list";
+      //   break;
       default:
         methodToCallOnClass = Object.getOwnPropertyNames(
           Object.getPrototypeOf(this.platform)).find(prop => contentBlockType.includes(prop)
@@ -55,6 +57,7 @@ export default class PlatformProvider {
     const generatedResponse: any = this.platform[methodToCallOnClass](messagePayload);
     return {
       ...generatedResponse,
+      response_type: methodToCallOnClass
     };
   }
 }
