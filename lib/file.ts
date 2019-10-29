@@ -25,7 +25,7 @@ export default class FileWriter extends flow.AbstractProject {
   static minorVersion = "2018-09-20";
   static status = "Available";
   private boardStructureByMessages: flow.SegmentizedStructure;
-  private requiredSlotStructure: flow.SlotStructure;
+  private requiredSlotsByIntents: flow.SlotStructure;
   private readonly outputDirectory: string;
   private readonly firstMessage: unknown;
   /**
@@ -39,7 +39,7 @@ export default class FileWriter extends flow.AbstractProject {
   constructor(config: IConfig) {
     super({ projectData: config.projectData as ProjectData<typeof config.projectData> });
     this.outputDirectory = config.outputDirectory;
-    this.requiredSlotStructure = this.representRequirementsForIntents();
+    this.requiredSlotsByIntents = this.representRequirementsForIntents();
     this.boardStructureByMessages = this.segmentizeBoardFromMessages();
     const { root_messages } = this.projectData.board.board;
     const [idOfRootMessage] = root_messages;
@@ -72,9 +72,10 @@ export default class FileWriter extends flow.AbstractProject {
    * Creates array of interrelated dialog nodes from flow structure
    * 
    * @remarks on each iteration over board structure by messages,
-   * adds 1-2 dialog nodes to the accumulator based on required intents
+   * adds additional dialog nodes to the accumulator based on presence
+   * of any required slots
    * 
-   * @returns ReadonlyArray<unknown>
+   * @returns an array of dialog nodes representing the project structure
    */
   private mapDialogNodesForProject(): ReadonlyArray<unknown> {
     const { platform } = this.projectData.project;
@@ -83,11 +84,11 @@ export default class FileWriter extends flow.AbstractProject {
       .reduce((acc, messageAndConnectedIntents) => {
         const [idOfConnectedMessage, idsOfConnectedIntents] = messageAndConnectedIntents;
         const message = this.getMessage(idOfConnectedMessage) as flow.Message;
-        const messagesImplicitInConenctedMessage: ReadonlyArray<unknown> = [];
-        const messagesExplicitInConnectedMessage: ReadonlyArray<unknown> = [
+        const messagesExplicitInConnectedMessage: ReadonlyArray<typeof message> = [
           message,
           ...this.gatherMessagesUpToNextIntent(message)
         ];
+        const messagesImplicitInConenctedMessage: ReadonlyArray<unknown> = [];
         return [
           ...acc,
           ...[
@@ -125,9 +126,11 @@ export default class FileWriter extends flow.AbstractProject {
         examples: intent.utterances.map(utterance => ({
           text: this.getSanitizedEntityName(utterance.text),
           mentions: utterance.variables.map(variable => {
-            const startIndex = parseInt(variable.start_index, 10) - 1;
+            const startIndex = parseInt(variable.start_index, 10);
             const endIndex = startIndex + variable.name.length - 2;
-            // const entity = this.projectData.entities.find(entity => entity.id === variable.entity);
+            // const entityInVariable = this.projectData.entities.find(entity => (
+            //   entity.id === variable.entity
+            // ));
             return {
               entity: this.getSanitizedEntityName(variable.name),
               location: [startIndex, endIndex],
