@@ -69,6 +69,13 @@ export default class FileWriter extends flow.AbstractProject {
     return "";
   }
   /**
+   * Gets full variable from an id
+   * @param variableId id of a variable to get
+   */
+  private getVariable(variableId: string): Partial<flow.Variable> {
+    return this.projectData.variables.find(variable => variable.id === variableId);
+  }
+  /**
    * Creates array of interrelated dialog nodes from flow structure
    * 
    * @remarks on each iteration over board structure by messages,
@@ -88,15 +95,31 @@ export default class FileWriter extends flow.AbstractProject {
           message,
           ...this.gatherMessagesUpToNextIntent(message)
         ];
-        const messagesImplicitInConenctedMessage: ReadonlyArray<unknown> = [];
+        const messagesImplicitInConnectedMessage: unknown[] = [];
+        const nodeId = `node_${uuid()}`;
+        for (const intentId of idsOfConnectedIntents) {
+          const requiredSlots = this.requiredSlotsByIntents.get(intentId);
+          if (Array.isArray(requiredSlots) && requiredSlots.length > 0) {
+            const slotNodeId = `slot_${uuid()}`;
+            const [firstRequiredSlot] = requiredSlots;
+            const { name: variableName } = this.getVariable(firstRequiredSlot.variable_id);
+            messagesImplicitInConnectedMessage.push({
+              type: DialogNodeTypes.slot,
+              parent: nodeId,
+              variable: `$${variableName}`,
+              slot: slotNodeId,
+            });
+          }
+        }
         return [
           ...acc,
           ...[
-            ...messagesImplicitInConenctedMessage,
-            ...messagesExplicitInConnectedMessage
-          ].map((message: flow.Message) => (
-            platformProvider.create(message.message_type, message.payload)
-          )),
+            ...messagesImplicitInConnectedMessage,
+            ...messagesExplicitInConnectedMessage.map((message: Partial<flow.Message>) => ({
+              dialog_node: nodeId,
+              ...platformProvider.create(message.message_type, message.payload)
+            })),
+          ],
         ];
       }, []);
   }
