@@ -95,22 +95,60 @@ export default class FileWriter extends flow.AbstractProject {
           message,
           ...this.gatherMessagesUpToNextIntent(message)
         ];
-        const messagesImplicitInConnectedMessage: unknown[] = [];
         const nodeId = `node_${uuid()}`;
-        for (const intentId of idsOfConnectedIntents) {
-          const requiredSlots = this.requiredSlotsByIntents.get(intentId);
-          if (Array.isArray(requiredSlots) && requiredSlots.length > 0) {
-            const slotNodeId = `slot_${uuid()}`;
-            const [firstRequiredSlot] = requiredSlots;
-            const { name: variableName } = this.getVariable(firstRequiredSlot.variable_id);
-            messagesImplicitInConnectedMessage.push({
-              type: DialogNodeTypes.slot,
-              parent: nodeId,
-              variable: `$${variableName}`,
-              slot: slotNodeId,
-            });
-          }
-        }
+        const messagesImplicitInConnectedMessage: unknown[] = idsOfConnectedIntents
+          .filter(intentId => {
+            const requiredSlots = this.requiredSlotsByIntents.get(intentId);
+            return Array.isArray(requiredSlots) && requiredSlots.length > 0;
+          })
+          .map(intentId => this.requiredSlotsByIntents.get(intentId) as any)
+          .map(slotsRequiredForIntent => {
+            const [firstRequiredSlot] = slotsRequiredForIntent;
+            let iterations = 0;
+            let nextValue: any[] = []
+            const { name } = this.getVariable(firstRequiredSlot.variable_id);
+            while (iterations < 3) {
+              switch (iterations) {
+                case 0:
+                  nextValue.push({
+                    type: DialogNodeTypes.slot,
+                    parent: nodeId,
+                    variable: `$${name}`,
+                    dialog_node: `slot_${uuid()}`,
+                  });
+                  break;
+                case 1:
+                  nextValue.push({
+                    type: DialogNodeTypes.handler,
+                    parent: nextValue[0].dialog_node,
+                    context: {
+                      [name]: `@${name}`
+                    },
+                    conditions: `@${name}`,
+                    event_name: "input",
+                    dialog_node: `handler_${uuid()}`,
+                  });
+                  break;
+                case 2:
+                  nextValue.push({
+                    type: DialogNodeTypes.handler,
+                    output: {
+                      text: {
+                        values: [firstRequiredSlot.prompt],
+                        selection_policy: "sequential",
+                      }
+                    },
+                    parent: nextValue[0].dialog_node,
+                    event_name: "focus",
+                    dialog_node: `handler_${uuid()}`,
+                    previous_sibling: nextValue[iterations - 1].dialog_node,
+                  });
+                  break;
+              }
+              iterations += 1;
+            }
+            return nextValue
+          });
         return [
           ...acc,
           ...[
