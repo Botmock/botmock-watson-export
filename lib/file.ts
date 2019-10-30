@@ -168,10 +168,14 @@ export default class FileWriter extends flow.AbstractProject {
   /**
    * Strips variable sign from given name
    * @param name name of the entity
-   * @returns string
+   * @returns unknown
    */
-  private getSanitizedEntityName(name: string): string {
-    return name.replace(/%/g, "");
+  private sanitizeText(text: string): unknown {
+    const disallowedCharactersRegex = new RegExp(/%|'|\./g);
+    return {
+      numCharactersViolatingRule: (text.match(disallowedCharactersRegex) || []).length,
+      text: text.replace(disallowedCharactersRegex, "")
+    }
   }
   /**
    * Writes watson-importable json file to output directory
@@ -188,20 +192,23 @@ export default class FileWriter extends flow.AbstractProject {
         intent: intent.name,
         // @ts-ignore
         description: intent.created_at.date,
-        examples: intent.utterances.map(utterance => ({
-          text: this.getSanitizedEntityName(utterance.text),
-          mentions: utterance.variables.map(variable => {
-            const startIndex = parseInt(variable.start_index, 10);
-            const endIndex = startIndex + variable.name.length - 2;
-            // const entityInVariable = this.projectData.entities.find(entity => (
-            //   entity.id === variable.entity
-            // ));
-            return {
-              entity: this.getSanitizedEntityName(variable.name),
-              location: [startIndex, endIndex],
-            }
-          }),
-        })),
+        examples: intent.utterances.map(utterance => {
+          // @ts-ignore
+          const { numCharactersViolatingRule, text } = this.sanitizeText(utterance.text);
+          return {
+            text,
+            mentions: utterance.variables.map(variable => {
+              const startIndex = parseInt(variable.start_index, 10);
+              const endIndex = startIndex + variable.name.length - numCharactersViolatingRule;
+              // @ts-ignore
+              const { text } = this.sanitizeText(variable.name);
+              return {
+                entity: text,
+                location: [startIndex, endIndex],
+              }
+            }),
+          }
+        }),
       })),
       entities: this.projectData.entities.map(entity => ({
         entity: entity.name,
