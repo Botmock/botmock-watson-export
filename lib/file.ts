@@ -5,6 +5,10 @@ import { EOL } from "os";
 import { join } from "path";
 import { default as PlatformProvider } from "./provider";
 
+namespace Watson {
+  export type DialogNodes = unknown[];
+}
+
 export type ProjectData<T> = T extends Promise<infer K> ? K : any;
 
 export enum DialogNodeTypes {
@@ -84,7 +88,7 @@ export default class FileWriter extends flow.AbstractProject {
    * 
    * @returns an array of dialog nodes representing the project structure
    */
-  private mapDialogNodesForProject(): ReadonlyArray<unknown> {
+  private mapDialogNodesForProject(): ReadonlyArray<Watson.DialogNodes> {
     const { platform } = this.projectData.project;
     const platformProvider = new PlatformProvider(platform);
     return Array.from(this.boardStructureByMessages.entries())

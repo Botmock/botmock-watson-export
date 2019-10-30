@@ -33,7 +33,7 @@
   "homepage": "https://github.com/botmock/botmock-watson-export#readme",
   "dependencies": {
     "@botmock-api/client": "^1.0.0",
-    "@botmock-api/flow": "^0.6.0",
+    "@botmock-api/flow": "^0.7.0",
     "botmock": "^1.2.0",
     "chalk": "^2.4.2",
     "dotenv": "^8.0.0",
