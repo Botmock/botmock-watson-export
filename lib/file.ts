@@ -11,6 +11,14 @@ namespace Watson {
 
 export type ProjectData<T> = T extends Promise<infer K> ? K : any;
 
+export enum Conditions {
+  anything = "anything_else",
+}
+
+export enum Types {
+  standard = "standard",
+}
+
 export enum DialogNodeTypes {
   handler = "event_handler",
   frame = "frame",
@@ -158,8 +166,13 @@ export default class FileWriter extends flow.AbstractProject {
           ...[
             ...messagesImplicitInConnectedMessage,
             ...messagesExplicitInConnectedMessage.map((message: Partial<flow.Message>) => ({
+              type: Types.standard,
+              title: message.payload ? message.payload.nodeName : message.message_id,
+              output: platformProvider.create(message.message_type, message.payload),
+              context: {},
+              next_step: {},
+              conditions: Conditions.anything,
               dialog_node: nodeId,
-              ...platformProvider.create(message.message_type, message.payload)
             })),
           ],
         ];
@@ -226,7 +239,7 @@ export default class FileWriter extends flow.AbstractProject {
         },
       },
       skill_id: uuid(),
-      description: "",
+      description: new Date().toLocaleString(),
       dialog_nodes: this.mapDialogNodesForProject(),
       workspace_id: uuid(),
       counterexamples: [],

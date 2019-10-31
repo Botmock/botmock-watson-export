@@ -52,8 +52,8 @@ export default class PlatformProvider {
     }
     const generatedResponse: any = this.platform[methodToCallOnClass](messagePayload);
     return {
-      ...generatedResponse,
-      response_type: methodToCallOnClass,
+      [platform]: generatedResponse,
+      generic: generatedResponse,
     };
   }
 }
