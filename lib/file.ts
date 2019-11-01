@@ -7,24 +7,21 @@ import { default as PlatformProvider } from "./provider";
 
 namespace Watson {
   export type DialogNodes = unknown[];
+  export enum Conditions {
+    anything = "anything_else",
+  }
+  export enum Types {
+    standard = "standard",
+  }
+  export enum DialogNodeTypes {
+    handler = "event_handler",
+    frame = "frame",
+    slot = "slot",
+    standard = "standard",
+  }
 }
 
 export type ProjectData<T> = T extends Promise<infer K> ? K : any;
-
-export enum Conditions {
-  anything = "anything_else",
-}
-
-export enum Types {
-  standard = "standard",
-}
-
-export enum DialogNodeTypes {
-  handler = "event_handler",
-  frame = "frame",
-  slot = "slot",
-  standard = "standard",
-}
 
 interface IConfig {
   readonly outputDirectory: string;
@@ -123,7 +120,7 @@ export default class FileWriter extends flow.AbstractProject {
               switch (iterations) {
                 case 0:
                   nextValue.push({
-                    type: DialogNodeTypes.slot,
+                    type: Watson.DialogNodeTypes.slot,
                     parent: nodeId,
                     variable: `$${name}`,
                     dialog_node: `slot_${uuid()}`,
@@ -131,7 +128,7 @@ export default class FileWriter extends flow.AbstractProject {
                   break;
                 case 1:
                   nextValue.push({
-                    type: DialogNodeTypes.handler,
+                    type: Watson.DialogNodeTypes.handler,
                     parent: nextValue[0].dialog_node,
                     context: {
                       [name]: `@${name}`
@@ -143,7 +140,7 @@ export default class FileWriter extends flow.AbstractProject {
                   break;
                 case 2:
                   nextValue.push({
-                    type: DialogNodeTypes.handler,
+                    type: Watson.DialogNodeTypes.handler,
                     output: {
                       text: {
                         values: [firstRequiredSlot.prompt],
@@ -166,12 +163,12 @@ export default class FileWriter extends flow.AbstractProject {
           ...[
             ...messagesImplicitInConnectedMessage,
             ...messagesExplicitInConnectedMessage.map((message: Partial<flow.Message>) => ({
-              type: Types.standard,
+              type: Watson.Types.standard,
               title: message.payload ? message.payload.nodeName : message.message_id,
               output: platformProvider.create(message.message_type, message.payload),
               context: {},
               next_step: {},
-              conditions: Conditions.anything,
+              conditions: Watson.Conditions.anything,
               dialog_node: nodeId,
             })),
           ],
