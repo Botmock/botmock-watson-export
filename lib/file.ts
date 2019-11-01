@@ -178,7 +178,8 @@ export default class FileWriter extends flow.AbstractProject {
   /**
    * Strips variable sign from given name
    * @param name name of the entity
-   * @returns unknown
+   * @returns object containing the number of characters that were removed
+   * and the sanitized text itself
    */
   private sanitizeText(text: string): unknown {
     const disallowedCharactersRegex = new RegExp(/%|'|\./g);
@@ -189,9 +190,6 @@ export default class FileWriter extends flow.AbstractProject {
   }
   /**
    * Writes watson-importable json file to output directory
-   * 
-   * @remarks ..
-   * 
    * @returns Promise<void>
    */
   private async writeWatsonImportableJSONFile(): Promise<void> {
