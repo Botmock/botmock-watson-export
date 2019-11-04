@@ -4,7 +4,7 @@ export default class Generic {
    * @param data message paylod
    * @returns object
    */
-  text(data: any): object {
+  text(data: any): typeof data {
     return {
       values: [{ text: data.text }]
     };
@@ -14,7 +14,7 @@ export default class Generic {
    * @param data message paylod
    * @returns object
    */
-  pause(data: any): object {
+  pause(data: any): typeof data {
     return {};
   }
   /**
@@ -22,7 +22,7 @@ export default class Generic {
    * @param data message paylod
    * @returns object
    */
-  option(data: any): object {
+  option(data: any): typeof data {
     const key = typeof data.buttons !== "undefined" ? "buttons" : "quick_replies";
     return {
       options: data[key].map((value: Partial<{ title: string, payload: string }>) => ({
@@ -40,7 +40,7 @@ export default class Generic {
    * @param data message paylod
    * @returns object
    */
-  image(data: any): object {
+  image(data: any): typeof data {
     return {
       title: data.title,
       source: data.image_url,

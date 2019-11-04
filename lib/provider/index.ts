@@ -1,20 +1,18 @@
+import { AbstractProject, Message } from "@botmock-api/flow";
 import { default as Generic } from "./platforms/generic";
 import { Watson } from "../file";
 
 export * from "./platforms/facebook";
 export * from "./platforms/slack";
 
-export type MessagePayload = {};
-
-// export type GeneratedResponse = any[];
-
-export default class PlatformProvider {
+export default class PlatformProvider extends AbstractProject {
   private readonly platform: any;
   /**
    * Creates new instance of PlatformProvider
    * @param platformName the name of the platform
    */
-  constructor(platformName: string) {
+  constructor(platformName: string, projectData: any) {
+    super({ projectData });
     let mod: typeof Generic;
     let platform = platformName;
     try {
@@ -25,12 +23,12 @@ export default class PlatformProvider {
     this.platform = new mod();
   }
   /**
-   * Creates json containing platform-specific data
-   * @param contentBlockType the message type
-   * @param messagePayload the payload of the message
+   * Creates output field within a dialog node
+   * @param message the first message
    * @returns response able to be mixed-in to rest of response object
    */
-  public create(contentBlockType: string = "", messagePayload: MessagePayload): Partial<{ [key: string]: any }> {
+  public create(message: Message): Partial<{ [key: string]: any }> {
+    const { message_type: contentBlockType } = message;
     let methodToCallOnClass: string;
     switch (contentBlockType) {
       case "api":
@@ -49,15 +47,17 @@ export default class PlatformProvider {
           Object.getPrototypeOf(this.platform)).find(prop => contentBlockType.includes(prop)
         );
     }
-    // const platform = this.platform.constructor.name.toLowerCase();
     if (!methodToCallOnClass) {
       methodToCallOnClass = "text";
     }
-    const generatedResponse: unknown = this.platform[methodToCallOnClass](messagePayload);
+    const platfomResponse: unknown = Watson.SupportedPlatforms[this.platform] ? { [this.platform]: {} } : {};
     return {
+      ...platfomResponse,
       selection_policy: Watson.SelectionPolicies.sequential,
       response_type: methodToCallOnClass,
-      ...generatedResponse,
+      generic: [message, ...this.gatherMessagesUpToNextIntent(message)].map(message => (
+        this.platform[methodToCallOnClass](message.payload)
+      ))
     };
   }
 }

@@ -84,7 +84,7 @@ export default class FileWriter extends flow.AbstractProject {
    * @todo
    */
   private findSegmentedParentOfDialogNode(nodeId: string): string | void {
-    return "";
+    return;
   }
   /**
    * Gets any intent necessary for node id
@@ -113,7 +113,7 @@ export default class FileWriter extends flow.AbstractProject {
    */
   private mapDialogNodesForProject(): ReadonlyArray<Watson.DialogNodes> {
     const { platform } = this.projectData.project;
-    const platformProvider = new PlatformProvider(platform);
+    const platformProvider = new PlatformProvider(platform, this.projectData);
     return Array.from(this.boardStructureByMessages.entries())
       .reduce((acc, messageAndConnectedIntents) => {
         const [idOfConnectedMessage, idsOfConnectedIntents] = messageAndConnectedIntents;
@@ -172,8 +172,10 @@ export default class FileWriter extends flow.AbstractProject {
             }
             return nextValue
           });
-        const platformField = !Watson.SupportedPlatforms[platform] ? {} : { [platform]: {} };
-        const [firstCondition] = idsOfConnectedIntents.map(id => `#${(this.getIntent(id) as flow.Intent).name}`)
+        const [firstCondition] = idsOfConnectedIntents
+          .map(id => this.getIntent(id) as flow.Intent)
+          .filter(intent => typeof intent !== "undefined")
+          .map(({ name }) => `#${name}`);
         return [
           ...acc,
           ...[
@@ -181,15 +183,13 @@ export default class FileWriter extends flow.AbstractProject {
             {
               type: Watson.Types.standard,
               title: message.payload ? message.payload.nodeName : message.message_id,
-              output: {
-                ...platformField,
-                generic: [message, ...this.gatherMessagesUpToNextIntent(message)].map(message => (
-                  platformProvider.create(message.message_type, message.payload)
-                ))
-              },
+              output: platformProvider.create(message),
               context: {},
+              parent: this.findSegmentedParentOfDialogNode(idOfConnectedMessage),
               next_step: {
                 behavior: Watson.Behaviors.jump,
+                selector: undefined,
+                dialog_node: undefined,
               },
               conditions: firstCondition,
               dialog_node: nodeId,
