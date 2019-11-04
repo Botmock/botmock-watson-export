@@ -1,4 +1,5 @@
 import { default as Generic } from "./platforms/generic";
+import { Watson } from "../file";
 
 export * from "./platforms/facebook";
 export * from "./platforms/slack";
@@ -29,7 +30,7 @@ export default class PlatformProvider {
    * @param messagePayload the payload of the message
    * @returns response able to be mixed-in to rest of response object
    */
-  create(contentBlockType: string = "", messagePayload: MessagePayload): Partial<{ [key: string]: any }> {
+  public create(contentBlockType: string = "", messagePayload: MessagePayload): Partial<{ [key: string]: any }> {
     let methodToCallOnClass: string;
     switch (contentBlockType) {
       case "api":
@@ -48,15 +49,15 @@ export default class PlatformProvider {
           Object.getPrototypeOf(this.platform)).find(prop => contentBlockType.includes(prop)
         );
     }
-    const platform = this.platform.constructor.name.toLowerCase();
+    // const platform = this.platform.constructor.name.toLowerCase();
     if (!methodToCallOnClass) {
       methodToCallOnClass = "text";
     }
-    const generatedResponse: unknown = Array.of(this.platform[methodToCallOnClass](messagePayload));
+    const generatedResponse: unknown = this.platform[methodToCallOnClass](messagePayload);
     return {
+      selection_policy: Watson.SelectionPolicies.sequential,
       response_type: methodToCallOnClass,
-      [platform]: generatedResponse,
-      generic: generatedResponse,
+      ...generatedResponse,
     };
   }
 }

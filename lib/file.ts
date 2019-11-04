@@ -5,7 +5,11 @@ import { EOL } from "os";
 import { join } from "path";
 import { default as PlatformProvider } from "./provider";
 
-namespace Watson {
+export namespace Watson {
+  export enum SupportedPlatforms {
+    slack = "slack",
+    facebook = "facebook",
+  }
   export type DialogNodes = unknown[];
   export enum Behaviors {
     jump = "jump_to",
@@ -13,6 +17,10 @@ namespace Watson {
   }
   export enum SelectionPolicies {
     sequential = "sequential",
+  }
+  export enum EventNames {
+    input = "input",
+    focus = "focus",
   }
   export enum EntityTypes {
     synonyms = "synonyms",
@@ -140,7 +148,7 @@ export default class FileWriter extends flow.AbstractProject {
                       [name]: `@${name}`
                     },
                     conditions: `@${name}`,
-                    event_name: "input",
+                    event_name: Watson.EventNames.input,
                     dialog_node: `handler_${uuid()}`,
                   });
                   break;
@@ -154,7 +162,7 @@ export default class FileWriter extends flow.AbstractProject {
                       }
                     },
                     parent: nextValue[0].dialog_node,
-                    event_name: "focus",
+                    event_name: Watson.EventNames.focus,
                     dialog_node: `handler_${uuid()}`,
                     previous_sibling: nextValue[iterations - 1].dialog_node,
                   });
@@ -164,6 +172,7 @@ export default class FileWriter extends flow.AbstractProject {
             }
             return nextValue
           });
+        const platformField = !Watson.SupportedPlatforms[platform] ? {} : { [platform]: {} };
         return [
           ...acc,
           ...[
@@ -172,6 +181,7 @@ export default class FileWriter extends flow.AbstractProject {
               type: Watson.Types.standard,
               title: message.payload ? message.payload.nodeName : message.message_id,
               output: {
+                ...platformField,
                 generic: [message, ...this.gatherMessagesUpToNextIntent(message)].map(message => (
                   platformProvider.create(message.message_type, message.payload)
                 ))
