@@ -69,7 +69,6 @@ export default class FileWriter extends flow.AbstractProject {
     this.outputDirectory = config.outputDirectory;
     this.requiredSlotsByIntents = this.representRequirementsForIntents();
     this.boardStructureByMessages = this.segmentizeBoardFromMessages();
-    // @ts-ignore
     this.parentChildSegmentedNodeMap = this.assembleParentChildSegmentedNodeMap();
     const { root_messages } = this.projectData.board.board;
     const [idOfRootMessage] = root_messages;
@@ -98,19 +97,16 @@ export default class FileWriter extends flow.AbstractProject {
    * Finds the dialog node that has this node as its child
    * @param nodeId id of the node whose parent must be found
    * @returns the node id of the parent
-   * @todo
    */
-  private findSegmentedParentOfDialogNode(nodeId: string): string | void {
-    return;
-  }
-  /**
-   * Gets any intent necessary for node id
-   * @param nodeId id of the node whose conditions must be found
-   * @returns the name of any necessary condition
-   * @todo
-   */
-  private getConditionsForDialogNode(nodeId: string): string | void {
-    return "";
+  private findSegmentedParentOfDialogNode(nodeId: string): string {
+    let idOfParentOfNodeId: string;
+    for (const [idOfParent, idOfSibling] of Array.from(this.parentChildSegmentedNodeMap.entries())) {
+      if (idOfSibling !== nodeId) {
+        continue;
+      }
+      idOfParentOfNodeId = idOfParent;
+    }
+    return idOfParentOfNodeId;
   }
   /**
    * Gets full variable from an id
