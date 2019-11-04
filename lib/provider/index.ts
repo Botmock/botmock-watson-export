@@ -3,7 +3,7 @@ export * from "./platforms/slack";
 
 export type MessagePayload = {};
 
-export type Response = {};
+export type GeneratedResponse = {};
 
 export default class PlatformProvider {
   private readonly platform: any;
@@ -27,7 +27,7 @@ export default class PlatformProvider {
    * @param messagePayload the payload of the message
    * @returns response able to be mixed-in to rest of response object
    */
-  create(contentBlockType: string = "", messagePayload: MessagePayload): Partial<Response> {
+  create(contentBlockType: string = "", messagePayload: MessagePayload): Partial<{ generic: GeneratedResponse }> {
     let methodToCallOnClass: string;
     switch (contentBlockType) {
       case "api":
@@ -48,9 +48,9 @@ export default class PlatformProvider {
     }
     const platform = this.platform.constructor.name.toLowerCase();
     if (!methodToCallOnClass) {
-      return {};
+      methodToCallOnClass = "text";
     }
-    const generatedResponse: any = this.platform[methodToCallOnClass](messagePayload);
+    const generatedResponse: GeneratedResponse = this.platform[methodToCallOnClass](messagePayload);
     return {
       [platform]: generatedResponse,
       generic: generatedResponse,

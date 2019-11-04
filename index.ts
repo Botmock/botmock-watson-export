@@ -30,7 +30,7 @@ async function recreateOutputDirectories(paths: Paths): Promise<void> {
  */
 async function main(args: string[]): Promise<void> {
   const DEFAULT_OUTPUT = "output";
-  let [, , outputDirectory] = args;
+  let [,, outputDirectory] = args;
   if (typeof outputDirectory === "undefined") {
     outputDirectory = process.env.OUTPUT_DIR || DEFAULT_OUTPUT;
   }
