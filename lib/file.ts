@@ -173,6 +173,7 @@ export default class FileWriter extends flow.AbstractProject {
             return nextValue
           });
         const platformField = !Watson.SupportedPlatforms[platform] ? {} : { [platform]: {} };
+        const [firstCondition] = idsOfConnectedIntents.map(id => `#${(this.getIntent(id) as flow.Intent).name}`)
         return [
           ...acc,
           ...[
@@ -190,7 +191,7 @@ export default class FileWriter extends flow.AbstractProject {
               next_step: {
                 behavior: Watson.Behaviors.jump,
               },
-              conditions: Watson.Conditions.anything,
+              conditions: firstCondition,
               dialog_node: nodeId,
             },
           ],
