@@ -5,6 +5,12 @@ import { Watson } from "../file";
 export * from "./platforms/facebook";
 export * from "./platforms/slack";
 
+namespace Slack {
+  export enum Colorbars {
+    default = "#2C3743",
+  }
+}
+
 export default class PlatformProvider extends AbstractProject {
   private readonly platform: any;
   /**
@@ -59,14 +65,22 @@ export default class PlatformProvider extends AbstractProject {
    * @returns response able to be mixed-in to rest of response object
    */
   public create(message: Message): Partial<{ [key: string]: any }> {
-    const platfomResponse: unknown = Watson.SupportedPlatforms[this.platform]
-      ? { [this.platform]: this.getResponsesForAllMessagesImpliedByFirstMessage(message) }
-      : {};
+    const platformResponse = this.getResponsesForAllMessagesImpliedByFirstMessage(message);
+    const platformSpecificResponse: { [key: string]: any } = {};
+    switch (this.platform) {
+      case Watson.SupportedPlatforms.slack:
+        platformSpecificResponse.slack = platformResponse;
+        platformSpecificResponse.colorbar = Slack.Colorbars.default;
+        platformSpecificResponse.pretext = "";
+        break;
+      case Watson.SupportedPlatforms.facebook:
+        break;
+    }
     return {
-      ...platfomResponse,
+      ...platformSpecificResponse,
       selection_policy: Watson.SelectionPolicies.sequential,
       // response_type: methodToCallOnClass,
-      generic: this.getResponsesForAllMessagesImpliedByFirstMessage(message),
+      generic: platformResponse,
     };
   }
 }
