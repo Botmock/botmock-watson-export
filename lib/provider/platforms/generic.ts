@@ -6,7 +6,7 @@ export default class Generic {
    */
   text(data: any): object {
     return {
-      values: [{ text: data.text, selection_policy: "sequential" }]
+      values: [{ text: data.text }]
     };
   }
   /**

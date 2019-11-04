@@ -1,9 +1,11 @@
+import { default as Generic } from "./platforms/generic";
+
 export * from "./platforms/facebook";
 export * from "./platforms/slack";
 
 export type MessagePayload = {};
 
-export type GeneratedResponse = {};
+// export type GeneratedResponse = any[];
 
 export default class PlatformProvider {
   private readonly platform: any;
@@ -12,7 +14,7 @@ export default class PlatformProvider {
    * @param platformName the name of the platform
    */
   constructor(platformName: string) {
-    let mod: any;
+    let mod: typeof Generic;
     let platform = platformName;
     try {
       mod = require(`./platforms/${platform}`).default;
@@ -27,7 +29,7 @@ export default class PlatformProvider {
    * @param messagePayload the payload of the message
    * @returns response able to be mixed-in to rest of response object
    */
-  create(contentBlockType: string = "", messagePayload: MessagePayload): Partial<{ generic: GeneratedResponse }> {
+  create(contentBlockType: string = "", messagePayload: MessagePayload): Partial<{ [key: string]: any }> {
     let methodToCallOnClass: string;
     switch (contentBlockType) {
       case "api":
@@ -50,8 +52,9 @@ export default class PlatformProvider {
     if (!methodToCallOnClass) {
       methodToCallOnClass = "text";
     }
-    const generatedResponse: GeneratedResponse = this.platform[methodToCallOnClass](messagePayload);
+    const generatedResponse: unknown = Array.of(this.platform[methodToCallOnClass](messagePayload));
     return {
+      response_type: methodToCallOnClass,
       [platform]: generatedResponse,
       generic: generatedResponse,
     };

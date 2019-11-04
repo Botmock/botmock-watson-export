@@ -7,6 +7,16 @@ import { default as PlatformProvider } from "./provider";
 
 namespace Watson {
   export type DialogNodes = unknown[];
+  export enum Behaviors {
+    jump = "jump_to",
+    skip = "skip_user_input",
+  }
+  export enum SelectionPolicies {
+    sequential = "sequential",
+  }
+  export enum EntityTypes {
+    synonyms = "synonyms",
+  }
   export enum Conditions {
     anything = "anything_else",
   }
@@ -100,10 +110,6 @@ export default class FileWriter extends flow.AbstractProject {
       .reduce((acc, messageAndConnectedIntents) => {
         const [idOfConnectedMessage, idsOfConnectedIntents] = messageAndConnectedIntents;
         const message = this.getMessage(idOfConnectedMessage) as flow.Message;
-        const messagesExplicitInConnectedMessage: ReadonlyArray<typeof message> = [
-          message,
-          ...this.gatherMessagesUpToNextIntent(message)
-        ];
         const nodeId = `node_${uuid()}`;
         const messagesImplicitInConnectedMessage: unknown[] = idsOfConnectedIntents
           .filter(intentId => {
@@ -144,7 +150,7 @@ export default class FileWriter extends flow.AbstractProject {
                     output: {
                       text: {
                         values: [firstRequiredSlot.prompt],
-                        selection_policy: "sequential",
+                        selection_policy: Watson.SelectionPolicies.sequential,
                       }
                     },
                     parent: nextValue[0].dialog_node,
@@ -162,15 +168,21 @@ export default class FileWriter extends flow.AbstractProject {
           ...acc,
           ...[
             ...messagesImplicitInConnectedMessage,
-            ...messagesExplicitInConnectedMessage.map((message: Partial<flow.Message>) => ({
+            {
               type: Watson.Types.standard,
               title: message.payload ? message.payload.nodeName : message.message_id,
-              output: platformProvider.create(message.message_type, message.payload),
+              output: {
+                generic: [message, ...this.gatherMessagesUpToNextIntent(message)].map(message => (
+                  platformProvider.create(message.message_type, message.payload)
+                ))
+              },
               context: {},
-              next_step: {},
+              next_step: {
+                behavior: Watson.Behaviors.jump,
+              },
               conditions: Watson.Conditions.anything,
               dialog_node: nodeId,
-            })),
+            },
           ],
         ];
       }, []);
@@ -221,7 +233,7 @@ export default class FileWriter extends flow.AbstractProject {
       entities: this.projectData.entities.map(entity => ({
         entity: entity.name,
         values: entity.data.map((datapoint: any) => ({
-          type: "synonyms",
+          type: Watson.EntityTypes.synonyms,
           value: datapoint.value,
           synonyms: datapoint.synonyms,
         })),
