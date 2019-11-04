@@ -1,5 +1,9 @@
 import { default as uuid } from "uuid/v4";
 
+export enum MessageTypes {
+  text = "text",
+}
+
 const nextMessageId = uuid();
 const messageId = uuid();
 const intentId = uuid();
@@ -14,11 +18,19 @@ export const projectData = {
         {
           is_root: true,
           message_id: messageId,
+          message_type: MessageTypes.text,
+          payload: {
+            text: "",
+          },
           next_message_ids: [{ message_id: nextMessageId, intent: { label: "", value: intentId }, action: "", conditional: "" }],
         },
         {
           is_root: false,
           message_id: nextMessageId,
+          message_type: MessageTypes.text,
+          payload: {
+            text: "",
+          },
           previous_message_ids: [{ message_id: messageId }],
           next_message_ids: [],
         }

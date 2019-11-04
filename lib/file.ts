@@ -89,7 +89,7 @@ export default class FileWriter extends flow.AbstractProject {
       const [idOfParent] = relationPair;
       const parentMessage = this.getMessage(idOfParent) as flow.Message;
       const [idOfSibling] = this.gatherMessagesUpToNextIntent(parentMessage).filter(message => (
-        this.boardStructureByMessages.get(message.message_id)
+        typeof this.boardStructureByMessages.get(message.message_id) !== "undefined"
       ));
       return [...acc, [idOfParent, idOfSibling]];
     }, []));
