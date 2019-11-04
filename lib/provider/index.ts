@@ -56,7 +56,11 @@ export default class PlatformProvider extends AbstractProject {
       if (!methodToCallOnClass) {
         methodToCallOnClass = "text";
       }
-      return this.platform[methodToCallOnClass](message.payload);
+      return {
+        ...this.platform[methodToCallOnClass](message.payload),
+        response_type: methodToCallOnClass,
+        selection_policy: Watson.SelectionPolicies.sequential,
+      };
     })
   }
   /**

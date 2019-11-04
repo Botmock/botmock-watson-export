@@ -54,7 +54,8 @@ export default class FileWriter extends flow.AbstractProject {
   private boardStructureByMessages: flow.SegmentizedStructure;
   private requiredSlotsByIntents: flow.SlotStructure;
   private readonly outputDirectory: string;
-  private readonly firstMessage: unknown;
+  // private readonly firstMessage: unknown;
+  private readonly parentChildSegmentedNodeMap: Map<string, string>;
   /**
    * Creates new instance of FileWriter class
    * 
@@ -68,14 +69,30 @@ export default class FileWriter extends flow.AbstractProject {
     this.outputDirectory = config.outputDirectory;
     this.requiredSlotsByIntents = this.representRequirementsForIntents();
     this.boardStructureByMessages = this.segmentizeBoardFromMessages();
+    // @ts-ignore
+    this.parentChildSegmentedNodeMap = this.assembleParentChildSegmentedNodeMap();
     const { root_messages } = this.projectData.board.board;
     const [idOfRootMessage] = root_messages;
     if (!this.boardStructureByMessages.get(idOfRootMessage)) {
       const rootMessage = this.getMessage(idOfRootMessage) as flow.Message;
       const [firstMessage] = rootMessage.next_message_ids as flow.NextMessage[];
-      this.firstMessage = firstMessage;
+      // this.firstMessage = firstMessage;
       this.boardStructureByMessages.set(firstMessage.message_id, Array.of(uuid()));
     }
+  }
+  /**
+   * Assembles relation between parent and child dialog nodes in the segmented flow
+   * @returns relation between id of parent and child messages
+   */
+  private assembleParentChildSegmentedNodeMap(): Map<string, string> {
+    return new Map(Array.from(this.boardStructureByMessages.entries()).reduce((acc, relationPair) => {
+      const [idOfParent] = relationPair;
+      const parentMessage = this.getMessage(idOfParent) as flow.Message;
+      const [idOfSibling] = this.gatherMessagesUpToNextIntent(parentMessage).filter(message => (
+        this.boardStructureByMessages.get(message.message_id)
+      ));
+      return [...acc, [idOfParent, idOfSibling]];
+    }, []));
   }
   /**
    * Finds the dialog node that has this node as its child
