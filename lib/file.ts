@@ -67,6 +67,7 @@ export default class FileWriter extends flow.AbstractProject {
   private boardStructureByMessages: flow.SegmentizedStructure;
   private requiredSlotsByIntents: flow.SlotStructure;
   private readonly outputDirectory: string;
+  private didSetPseudoWelcomeIntent: boolean = false;
   private readonly parentChildSegmentedNodeMap: Map<string, string[]>;
   /**
    * Creates new instance of FileWriter class
@@ -87,6 +88,7 @@ export default class FileWriter extends flow.AbstractProject {
       const rootMessage = this.getMessage(idOfRootMessage) as flow.Message;
       const [firstMessage] = rootMessage.next_message_ids as flow.NextMessage[];
       this.boardStructureByMessages.set(firstMessage.message_id, Array.of(uuid()));
+      this.didSetPseudoWelcomeIntent = true;
     }
     this.parentChildSegmentedNodeMap = this.assembleParentChildSegmentedNodeMap();
   }
@@ -110,7 +112,7 @@ export default class FileWriter extends flow.AbstractProject {
             nextMessages
               .filter(message => this.boardStructureByMessages.get(message.message_id))
               .map(message => message.message_id)
-              .filter(idOfMessage => typeof idOfMessage !== "undefined")
+              .filter(idOfMessage => typeof idOfMessage !== "undefined"),
           ];
         }), []);
       return [...acc, [idOfParentMessageFollowingIntent, idOfChildMessageFollowingIntent]];
@@ -285,18 +287,24 @@ export default class FileWriter extends flow.AbstractProject {
    */
   private async writeWatsonImportableJSONFile(): Promise<void> {
     const { name } = this.projectData.project;
+    const pseudoIntent = this.didSetPseudoWelcomeIntent ? [{
+      name: "welcome",
+      created_at: { date: new Date().toLocaleString() },
+      utterances: [{ text: "hi" }, { text: "hello" }],
+    }] : [];
     const skillData = {
       name,
-      intents: this.projectData.intents.map(intent => ({
+      // @ts-ignore
+      intents: [...this.projectData.intents, ...pseudoIntent as flow.Intent].map(intent => ({
         intent: intent.name,
-        // @ts-ignore
         description: intent.created_at.date,
-        examples: intent.utterances.map(utterance => {
+        examples: intent.utterances.map((utterance: flow.Utterance) => {
           // @ts-ignore
           const { numCharactersViolatingRule, text } = this.sanitizeText(utterance.text);
+          const { variables = [] } = utterance;
           return {
             text,
-            mentions: utterance.variables.map(variable => {
+            mentions: variables.map(variable => {
               const startIndex = parseInt(variable.start_index, 10);
               const endIndex = startIndex + variable.name.length - numCharactersViolatingRule;
               // @ts-ignore
