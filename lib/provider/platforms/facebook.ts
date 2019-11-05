@@ -3,8 +3,7 @@ import { Facebook } from "../";
 export default class {
   /**
    * 
-   * @param data any
-   * @returns object
+   * @param data message payload
    */
   text(data: any): typeof data {
     return {
@@ -16,8 +15,7 @@ export default class {
   }
   /**
    * 
-   * @param data any
-   * @returns object
+   * @param data message payload
    */
   option(data: any): typeof data {
     return {

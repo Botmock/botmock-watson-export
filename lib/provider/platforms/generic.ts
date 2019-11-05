@@ -2,7 +2,6 @@ export default class Generic {
   /**
    * 
    * @param data message paylod
-   * @returns object
    */
   public text(data: any): typeof data {
     return {
@@ -12,7 +11,6 @@ export default class Generic {
   /**
    * 
    * @param data message paylod
-   * @returns object
    */
   public pause(data: any): typeof data {
     return { time: 0, typing: true };
@@ -20,7 +18,6 @@ export default class Generic {
   /**
    * 
    * @param data message paylod
-   * @returns object
    */
   public option(data: any): typeof data {
     const key = typeof data.buttons !== "undefined" ? "buttons" : "quick_replies";
@@ -39,7 +36,6 @@ export default class Generic {
   /**
    * 
    * @param data message paylod
-   * @returns object
    */
   public image(data: any): typeof data {
     const [firstElement] = data.elements || [data];

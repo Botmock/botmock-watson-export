@@ -5,6 +5,11 @@ import { Watson } from "../file";
 export * from "./platforms/facebook";
 export * from "./platforms/slack";
 
+export type CollectedResponseObject = {
+  readonly platformResponses: any[];
+  readonly genericResponses: any[];
+};
+
 export namespace Facebook {
   export enum MessageTypes {
     template = "template",
@@ -43,46 +48,53 @@ export default class PlatformProvider extends AbstractProject {
    * @param message message to map responses from
    */
   private getResponsesForAllMessagesImpliedByFirstMessage(message: Message): any {
-    return [message, ...this.gatherMessagesUpToNextIntent(message)].map(message => {
-      const { message_type: contentBlockType } = message;
-      let methodToCallOnClass: string;
-      switch (contentBlockType) {
-        case "api":
-        case "jump":
-          methodToCallOnClass = undefined;
-          break;
-        case "delay":
-          methodToCallOnClass = "pause";
-          break;
-        case "generic":
-          methodToCallOnClass = "image";
-          break;
-        case "quick_replies":
-        case "button":
-          methodToCallOnClass = "option";
-          break;
-        default:
-          methodToCallOnClass = Object.getOwnPropertyNames(
-            Object.getPrototypeOf(this.platform)).find(prop => contentBlockType.includes(prop)
+    return [message, ...this.gatherMessagesUpToNextIntent(message)]
+      .map(message => {
+        const { message_type: contentBlockType } = message;
+        let methodToCallOnClass: string;
+        switch (contentBlockType) {
+          case "api":
+          case "jump":
+            methodToCallOnClass = undefined;
+            break;
+          case "delay":
+            methodToCallOnClass = "pause";
+            break;
+          case "generic":
+            methodToCallOnClass = "image";
+            break;
+          case "quick_replies":
+          case "button":
+            methodToCallOnClass = "option";
+            break;
+          default:
+            methodToCallOnClass = Object.getOwnPropertyNames(
+              Object.getPrototypeOf(this.platform)).find(prop => contentBlockType.includes(prop)
             );
-      }
-      if (!methodToCallOnClass) {
-        methodToCallOnClass = "text";
-      }
-      const genericInstance = new Generic();
-      return {
-        platformResponse: {
-          ...this.platform[methodToCallOnClass](message.payload),
-          response_type: methodToCallOnClass,
-          selection_policy: Watson.SelectionPolicies.sequential,
-        },
-        genericReponse: {
-          ...genericInstance[methodToCallOnClass](message.payload),
-          response_type: methodToCallOnClass,
-          selection_policy: Watson.SelectionPolicies.sequential,
         }
-      };
-    })
+        if (!methodToCallOnClass) {
+          methodToCallOnClass = "text";
+        }
+        const genericInstance = new Generic();
+        return {
+          platformResponse: {
+            ...this.platform[methodToCallOnClass](message.payload),
+            response_type: methodToCallOnClass,
+            selection_policy: Watson.SelectionPolicies.sequential,
+          },
+          genericResponse: {
+            ...genericInstance[methodToCallOnClass](message.payload),
+            response_type: methodToCallOnClass,
+            selection_policy: Watson.SelectionPolicies.sequential,
+          }
+        };
+      })
+      .reduce((acc, { platformResponse, genericResponse }) => {
+        return {
+          platformResponses: [...acc.platformResponses, platformResponse],
+          genericResponses: [...acc.genericResponses, genericResponse],
+        };
+      }, { platformResponses: [], genericResponses: [] });
   }
   /**
    * Creates output field within a dialog node
@@ -90,18 +102,18 @@ export default class PlatformProvider extends AbstractProject {
    * @returns response able to be mixed-in to rest of response object
    */
   public create(message: Message): Partial<{ [key: string]: any }> {
-    const { platformResponse, genericResponse } = this.getResponsesForAllMessagesImpliedByFirstMessage(message);
+    const { platformResponses, genericResponses }: CollectedResponseObject = this.getResponsesForAllMessagesImpliedByFirstMessage(message);
     const platformSpecificResponse: { [key: string]: any } = {};
     switch (this.platform) {
       case Watson.SupportedPlatforms.slack:
-        platformSpecificResponse.slack = platformResponse;
+        platformSpecificResponse.slack = platformResponses;
         platformSpecificResponse.colorbar = Slack.Colorbars.default;
         platformSpecificResponse.pretext = "";
         break;
       case Watson.SupportedPlatforms.facebook:
         platformSpecificResponse.message.attachment = {
           type: Facebook.MessageTypes.template,
-          payload: platformResponse,
+          payload: platformResponses,
         };
         break;
     }
@@ -109,7 +121,7 @@ export default class PlatformProvider extends AbstractProject {
       ...platformSpecificResponse,
       selection_policy: Watson.SelectionPolicies.sequential,
       // response_type: methodToCallOnClass,
-      generic: genericResponse,
+      generic: genericResponses,
     };
   }
 }
