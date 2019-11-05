@@ -54,6 +54,9 @@ export default class PlatformProvider extends AbstractProject {
         case "delay":
           methodToCallOnClass = "pause";
           break;
+        case "generic":
+          methodToCallOnClass = "image";
+          break;
         case "quick_replies":
         case "button":
           methodToCallOnClass = "option";

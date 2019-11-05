@@ -15,7 +15,7 @@ export default class Generic {
    * @returns object
    */
   public pause(data: any): typeof data {
-    return { time: 0 };
+    return { time: 0, typing: true };
   }
   /**
    * 
@@ -42,9 +42,11 @@ export default class Generic {
    * @returns object
    */
   public image(data: any): typeof data {
+    const [firstElement] = data.elements || [data];
     return {
-      title: data.title,
-      source: data.image_url,
+      title: firstElement.title,
+      source: firstElement.image_url,
+      description: firstElement.subtitle,
     };
   }
 }
