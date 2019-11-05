@@ -11,6 +11,9 @@ export namespace Watson {
     facebook = "facebook",
   }
   export type DialogNodes = unknown[];
+  export enum Selectors {
+    user = "user_input",
+  }
   export enum Behaviors {
     jump = "jump_to",
     skip = "skip_user_input",
@@ -98,13 +101,27 @@ export default class FileWriter extends flow.AbstractProject {
    */
   private findSegmentedParentOfDialogNode(nodeId: string): string {
     let idOfParentOfNodeId: string;
-    for (const [idOfParent, idOfSibling] of Array.from(this.parentChildSegmentedNodeMap.entries())) {
-      if (idOfSibling !== nodeId) {
+    for (const [idOfParent, idOfChild] of Array.from(this.parentChildSegmentedNodeMap.entries())) {
+      if (idOfChild !== nodeId) {
         continue;
       }
       idOfParentOfNodeId = idOfParent;
     }
     return `node_${idOfParentOfNodeId}`;
+  }
+  /**
+   * Finds the dialog node that has this node as its parent
+   * @param nodeId id of the node whose child must be found
+   */
+  private findSegmentedChildOfDialogNode(nodeId: string): string {
+    let idOfChildOfNodeId: string;
+    for (const [idOfParent, idOfChild] of Array.from(this.parentChildSegmentedNodeMap.entries())) {
+      if (idOfParent !== nodeId) {
+        continue;
+      }
+      idOfChildOfNodeId = idOfChild;
+    }
+    return `node_${idOfChildOfNodeId};`
   }
   /**
    * Gets full variable from an id
@@ -199,8 +216,8 @@ export default class FileWriter extends flow.AbstractProject {
               parent: this.findSegmentedParentOfDialogNode(idOfConnectedMessage),
               next_step: {
                 behavior: Watson.Behaviors.jump,
-                selector: undefined,
-                dialog_node: undefined,
+                selector: Watson.Selectors.user,
+                dialog_node: this.findSegmentedChildOfDialogNode(idOfConnectedMessage),
               },
               conditions: firstCondition,
               dialog_node: nodeId,
