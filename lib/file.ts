@@ -220,7 +220,7 @@ export default class FileWriter extends flow.AbstractProject {
             }
             return nextValue
           });
-        const [firstCondition] = idsOfConnectedIntents
+        const [firstCondition = "#welcome"] = idsOfConnectedIntents
           .map(id => this.getIntent(id) as flow.Intent)
           .filter(intent => typeof intent !== "undefined")
           .map(({ name }) => `#${name}`);
