@@ -42,7 +42,7 @@ export default class PlatformProvider extends AbstractProject {
    * Gets responses for any messages in the same segment as a given message
    * @param message message to map responses from
    */
-  private getResponsesForAllMessagesImpliedByFirstMessage(message: Message): unknown {
+  private getResponsesForAllMessagesImpliedByFirstMessage(message: Message): any {
     return [message, ...this.gatherMessagesUpToNextIntent(message)].map(message => {
       const { message_type: contentBlockType } = message;
       let methodToCallOnClass: string;
@@ -66,10 +66,18 @@ export default class PlatformProvider extends AbstractProject {
       if (!methodToCallOnClass) {
         methodToCallOnClass = "text";
       }
+      const genericInstance = new Generic();
       return {
-        ...this.platform[methodToCallOnClass](message.payload),
-        response_type: methodToCallOnClass,
-        selection_policy: Watson.SelectionPolicies.sequential,
+        platformResponse: {
+          ...this.platform[methodToCallOnClass](message.payload),
+          response_type: methodToCallOnClass,
+          selection_policy: Watson.SelectionPolicies.sequential,
+        },
+        genericReponse: {
+          ...genericInstance[methodToCallOnClass](message.payload),
+          response_type: methodToCallOnClass,
+          selection_policy: Watson.SelectionPolicies.sequential,
+        }
       };
     })
   }
@@ -79,7 +87,7 @@ export default class PlatformProvider extends AbstractProject {
    * @returns response able to be mixed-in to rest of response object
    */
   public create(message: Message): Partial<{ [key: string]: any }> {
-    const platformResponse = this.getResponsesForAllMessagesImpliedByFirstMessage(message);
+    const { platformResponse, genericResponse } = this.getResponsesForAllMessagesImpliedByFirstMessage(message);
     const platformSpecificResponse: { [key: string]: any } = {};
     switch (this.platform) {
       case Watson.SupportedPlatforms.slack:
@@ -98,7 +106,7 @@ export default class PlatformProvider extends AbstractProject {
       ...platformSpecificResponse,
       selection_policy: Watson.SelectionPolicies.sequential,
       // response_type: methodToCallOnClass,
-      generic: platformResponse,
+      generic: genericResponse,
     };
   }
 }

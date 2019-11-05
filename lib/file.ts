@@ -274,7 +274,7 @@ export default class FileWriter extends flow.AbstractProject {
               // @ts-ignore
               const { text } = this.sanitizeText(variable.name);
               return {
-                entity: text,
+                entity: text.replace(/\s/g, ""),
                 location: [startIndex, endIndex],
               }
             }),
