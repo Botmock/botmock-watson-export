@@ -1,9 +1,8 @@
 import * as flow from "@botmock-api/flow";
-import { writeJson } from "fs-extra";
 import { default as uuid } from "uuid/v4";
-import { EOL } from "os";
+import { writeJson } from "fs-extra";
 import { join } from "path";
-// import { strictEqual } from "assert";
+import { EOL } from "os";
 import { default as PlatformProvider } from "./provider";
 
 export namespace Watson {

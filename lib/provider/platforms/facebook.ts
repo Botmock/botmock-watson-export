@@ -1,11 +1,11 @@
-import { Facebook } from "../";
+import { MessagePayload, Facebook } from "../";
 
 export default class {
   /**
    * 
    * @param data message payload
    */
-  text(data: any): typeof data {
+  text(data: MessagePayload): object {
     return {
       template_type: Facebook.TemplateTypes.generic,
       elements: [
@@ -17,7 +17,7 @@ export default class {
    * 
    * @param data message payload
    */
-  option(data: any): typeof data {
+  option(data: MessagePayload): object {
     return {
       template_type: Facebook.TemplateTypes.button,
       text: data.text,

@@ -1,9 +1,11 @@
+import { MessagePayload } from "../";
+
 export default class Generic {
   /**
    * 
    * @param data message paylod
    */
-  public text(data: any): typeof data {
+  public text(data: MessagePayload): object {
     return {
       values: [{ text: data.text }]
     };
@@ -12,14 +14,14 @@ export default class Generic {
    * 
    * @param data message paylod
    */
-  public pause(data: any): typeof data {
+  public pause(data: MessagePayload): object {
     return { time: data.show_for, typing: true };
   }
   /**
    * 
    * @param data message paylod
    */
-  public option(data: any): typeof data {
+  public option(data: MessagePayload): object {
     const key = typeof data.buttons !== "undefined" ? "buttons" : "quick_replies";
     return {
       title: data.text,
@@ -37,7 +39,7 @@ export default class Generic {
    * 
    * @param data message paylod
    */
-  public image(data: any): typeof data {
+  public image(data: MessagePayload): object {
     const [firstElement] = data.elements || [data];
     return {
       title: firstElement.title,

@@ -5,6 +5,14 @@ import { Watson } from "../file";
 export * from "./platforms/facebook";
 export * from "./platforms/slack";
 
+export type MessagePayload = Partial<{
+  text: string;
+  buttons: any[];
+  show_for: number;
+  elements: any[];
+  attachments: any[];
+}>;
+
 export type CollectedResponseObject = {
   readonly platformResponses: any[];
   readonly genericResponses: any[];

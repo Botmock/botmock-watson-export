@@ -1,4 +1,3 @@
-// import { projectData } from "@botmock-api/flow";
 import { remove } from "fs-extra";
 import { execSync } from "child_process";
 import { join } from "path";
