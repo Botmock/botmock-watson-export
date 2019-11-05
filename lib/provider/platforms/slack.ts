@@ -1,10 +1,9 @@
 export default class Slack {
   /**
    * 
-   * @param data any
-   * @returns object
+   * @param data payload
    */
   text(data: any): typeof data {
-    return data;
+    return { text: data.text, attachments: data.attachments };
   }
 };
