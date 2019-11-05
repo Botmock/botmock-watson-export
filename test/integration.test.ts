@@ -1,3 +1,4 @@
+// import { projectData } from "@botmock-api/flow";
 import { remove } from "fs-extra";
 import { execSync } from "child_process";
 import { join } from "path";
@@ -16,6 +17,9 @@ describe("run", () => {
 });
 
 describe("file contents after npm start", () => {
+  beforeEach(() => {
+    execSync("npm start");
+  });
   test.todo("json file has fields implied by fixture project structure");
 });
 

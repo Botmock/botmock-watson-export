@@ -13,7 +13,7 @@ export default class Generic {
    * @param data message paylod
    */
   public pause(data: any): typeof data {
-    return { time: 0, typing: true };
+    return { time: data.show_for, typing: true };
   }
   /**
    * 
