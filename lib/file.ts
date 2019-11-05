@@ -33,6 +33,7 @@ export namespace Watson {
   }
   export enum Types {
     standard = "standard",
+    frame = "frame",
   }
   export enum DialogNodeTypes {
     handler = "event_handler",
@@ -82,15 +83,18 @@ export default class FileWriter extends flow.AbstractProject {
   }
   /**
    * Assembles relation between parent and child dialog nodes in the segmented flow
+   * 
+   * @remarks 
+   * 
    * @returns relation between id of parent and child messages
    */
   private assembleParentChildSegmentedNodeMap(): Map<string, string> {
     return new Map(Array.from(this.boardStructureByMessages.entries()).reduce((acc, relationPair) => {
       const [idOfParent] = relationPair;
       const parentMessage = this.getMessage(idOfParent) as flow.Message;
-      const [idOfSibling] = this.gatherMessagesUpToNextIntent(parentMessage).filter(message => (
-        typeof this.boardStructureByMessages.get(message.message_id) !== "undefined"
-      ));
+      const [idOfSibling] = this.gatherMessagesUpToNextIntent(parentMessage)
+        .filter(message => message.next_message_ids.some(nextMessage => typeof nextMessage.intent !== "string"))
+        .map(message => message.message_id);
       return [...acc, [idOfParent, idOfSibling]];
     }, []));
   }
@@ -99,7 +103,7 @@ export default class FileWriter extends flow.AbstractProject {
    * @param nodeId id of the node whose parent must be found
    * @returns the node id of the parent
    */
-  private findSegmentedParentOfDialogNode(nodeId: string): string {
+  private findSegmentedParentOfDialogNode(nodeId: string): string | void {
     let idOfParentOfNodeId: string;
     for (const [idOfParent, idOfChild] of Array.from(this.parentChildSegmentedNodeMap.entries())) {
       if (idOfChild !== nodeId) {
@@ -107,19 +111,25 @@ export default class FileWriter extends flow.AbstractProject {
       }
       idOfParentOfNodeId = idOfParent;
     }
+    if (typeof idOfParentOfNodeId === "undefined") {
+      return;
+    }
     return `node_${idOfParentOfNodeId}`;
   }
   /**
    * Finds the dialog node that has this node as its parent
    * @param nodeId id of the node whose child must be found
    */
-  private findSegmentedChildOfDialogNode(nodeId: string): string {
+  private findSegmentedChildOfDialogNode(nodeId: string): string | void {
     let idOfChildOfNodeId: string;
     for (const [idOfParent, idOfChild] of Array.from(this.parentChildSegmentedNodeMap.entries())) {
       if (idOfParent !== nodeId) {
         continue;
       }
       idOfChildOfNodeId = idOfChild;
+    }
+    if (typeof idOfChildOfNodeId === "undefined") {
+      return;
     }
     return `node_${idOfChildOfNodeId};`
   }
@@ -204,6 +214,13 @@ export default class FileWriter extends flow.AbstractProject {
           .map(id => this.getIntent(id) as flow.Intent)
           .filter(intent => typeof intent !== "undefined")
           .map(({ name }) => `#${name}`);
+        const nextStep = this.findSegmentedChildOfDialogNode(idOfConnectedMessage)
+          ? {
+              behavior: Watson.Behaviors.jump,
+              selector: Watson.Selectors.user,
+              dialog_node: this.findSegmentedChildOfDialogNode(idOfConnectedMessage),
+            }
+          : undefined;
         return [
           ...acc,
           ...[
@@ -212,13 +229,8 @@ export default class FileWriter extends flow.AbstractProject {
               type: Watson.Types.standard,
               title: message.payload ? message.payload.nodeName : message.message_id,
               output: platformProvider.create(message),
-              context: {},
               parent: this.findSegmentedParentOfDialogNode(idOfConnectedMessage),
-              next_step: {
-                behavior: Watson.Behaviors.jump,
-                selector: Watson.Selectors.user,
-                dialog_node: this.findSegmentedChildOfDialogNode(idOfConnectedMessage),
-              },
+              next_step: nextStep,
               conditions: firstCondition,
               dialog_node: nodeId,
             },

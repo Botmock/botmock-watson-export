@@ -15,7 +15,7 @@ export default class Generic {
    * @returns object
    */
   public pause(data: any): typeof data {
-    return {};
+    return { time: 0 };
   }
   /**
    * 

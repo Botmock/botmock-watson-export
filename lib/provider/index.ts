@@ -5,7 +5,17 @@ import { Watson } from "../file";
 export * from "./platforms/facebook";
 export * from "./platforms/slack";
 
-namespace Slack {
+export namespace Facebook {
+  export enum MessageTypes {
+    template = "template",
+  }
+  export enum TemplateTypes {
+    button = "button",
+    generic = "generic",
+  }
+}
+
+export namespace Slack {
   export enum Colorbars {
     default = "#2C3743",
   }
@@ -78,6 +88,10 @@ export default class PlatformProvider extends AbstractProject {
         platformSpecificResponse.pretext = "";
         break;
       case Watson.SupportedPlatforms.facebook:
+        platformSpecificResponse.message.attachment = {
+          type: Facebook.MessageTypes.template,
+          payload: platformResponse,
+        };
         break;
     }
     return {
