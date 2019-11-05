@@ -2,6 +2,7 @@ import { remove } from "fs-extra";
 import { execSync } from "child_process";
 import { join } from "path";
 import { EOL } from "os";
+// import { projectData } from "./fixtures";
 
 describe("run", () => {
   const pathToDefaultOutputDirectory = join(process.cwd(), "output");
@@ -14,8 +15,10 @@ describe("run", () => {
   });
 });
 
-describe.skip("import", () => {});
+describe("file contents after npm start", () => {
+  test.todo("json file has fields implied by fixture project structure");
+});
 
-describe.skip("file contents", () => {});
-
-describe.skip("data fetching", () => {});
+describe("data fetching", () => {
+  test.todo("batcher provides file writer with correct project data");
+});
