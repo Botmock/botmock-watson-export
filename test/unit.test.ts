@@ -18,7 +18,7 @@ afterAll(async () => {
 test("dialog nodes field is correct for mock project", async () => {
   const { name } = projectData.project;
   await instance.write();
-  expect(
-    JSON.parse(await readFile(join(outputDirectory, `${name}.json`), "utf8"))
-  ).toHaveProperty("dialog_nodes");
+  const json = JSON.parse(await readFile(join(outputDirectory, `${name}.json`), "utf8"))
+  expect(json).toHaveProperty("dialog_nodes");
+  expect(json.dialog_nodes[0].dialog_node).toMatch(/node_[a-z0-9|-]+/);
 });
