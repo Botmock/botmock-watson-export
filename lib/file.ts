@@ -54,7 +54,6 @@ export default class FileWriter extends flow.AbstractProject {
   private boardStructureByMessages: flow.SegmentizedStructure;
   private requiredSlotsByIntents: flow.SlotStructure;
   private readonly outputDirectory: string;
-  // private readonly firstMessage: unknown;
   private readonly parentChildSegmentedNodeMap: Map<string, string>;
   /**
    * Creates new instance of FileWriter class
@@ -75,7 +74,6 @@ export default class FileWriter extends flow.AbstractProject {
     if (!this.boardStructureByMessages.get(idOfRootMessage)) {
       const rootMessage = this.getMessage(idOfRootMessage) as flow.Message;
       const [firstMessage] = rootMessage.next_message_ids as flow.NextMessage[];
-      // this.firstMessage = firstMessage;
       this.boardStructureByMessages.set(firstMessage.message_id, Array.of(uuid()));
     }
   }
@@ -106,7 +104,7 @@ export default class FileWriter extends flow.AbstractProject {
       }
       idOfParentOfNodeId = idOfParent;
     }
-    return idOfParentOfNodeId;
+    return `node_${idOfParentOfNodeId}`;
   }
   /**
    * Gets full variable from an id
