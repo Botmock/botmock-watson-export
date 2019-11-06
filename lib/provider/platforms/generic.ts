@@ -25,6 +25,7 @@ export default class Generic {
     const key = typeof data.buttons !== "undefined" ? "buttons" : "quick_replies";
     return {
       title: data.text,
+      // @ts-ignore
       options: data[key].map((value: Partial<{ title: string, payload: string }>) => ({
         label: value.title,
         value: {

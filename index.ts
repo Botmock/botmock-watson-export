@@ -37,11 +37,12 @@ async function main(args: string[]): Promise<void> {
   log("creating output directories");
   await recreateOutputDirectories({ outputPath: outputDirectory, });
   log("fetching project data");
+  // @ts-ignore
   const { data: projectData } = await new Batcher({
-    token: process.env.BOTMOCK_TOKEN,
-    teamId: process.env.BOTMOCK_TEAM_ID,
-    projectId: process.env.BOTMOCK_PROJECT_ID,
-    boardId: process.env.BOTMOCK_BOARD_ID,
+    token: process.env.BOTMOCK_TOKEN as string,
+    teamId: process.env.BOTMOCK_TEAM_ID as string,
+    projectId: process.env.BOTMOCK_PROJECT_ID as string,
+    boardId: process.env.BOTMOCK_BOARD_ID as string,
   }).batchRequest([
     "project",
     "board",
@@ -65,7 +66,7 @@ process.on("unhandledRejection", () => {});
 process.on("uncaughtException", () => {});
 
 main(process.argv).catch(async (err: Error) => {
-  log(err.stack, { isError: true });
+  log(err.stack as string, { isError: true });
   if (process.env.OPT_IN_ERROR_REPORTING) {
     // Sentry.captureException(err);
   } else {

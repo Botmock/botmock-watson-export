@@ -26,6 +26,9 @@ export namespace Facebook {
     button = "button",
     generic = "generic",
   }
+  export enum Ratios {
+    full = "full",
+  }
 }
 
 export namespace Slack {

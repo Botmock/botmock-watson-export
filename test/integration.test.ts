@@ -17,6 +17,7 @@ afterEach(async () => {
 
 describe("run", () => {
   test("outputs correct number of newlines", () => {
+    // @ts-ignore
     expect(execution.toString().split(EOL).length).toBeGreaterThanOrEqual(9);
   });
 });

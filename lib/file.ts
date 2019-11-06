@@ -101,14 +101,18 @@ export default class FileWriter extends flow.AbstractProject {
    * @returns relation between id of parent and child messages
    */
   private assembleParentChildSegmentedNodeMap(): Map<string, string[]> {
+    // @ts-ignore
     return new Map(Array.from(this.boardStructureByMessages.entries()).reduce((acc, relationPair) => {
       const [idOfParentMessageFollowingIntent] = relationPair;
       const parentMessage = this.getMessage(idOfParentMessageFollowingIntent) as flow.Message;
       const [idOfChildMessageFollowingIntent] = [parentMessage, ...this.gatherMessagesUpToNextIntent(parentMessage)]
         .map(message => message.next_message_ids)
+        // @ts-ignore
         .reduce(((acc, nextMessages) => {
           return [
+            // @ts-ignore
             ...acc,
+            // @ts-ignore
             nextMessages
               .filter(message => this.boardStructureByMessages.get(message.message_id))
               .map(message => message.message_id)
@@ -131,6 +135,7 @@ export default class FileWriter extends flow.AbstractProject {
             nodeId: `node_${idOfParent}`,
             siblingLinkedList: new Map(
               idsOfChildren
+                // @ts-ignore
                 .reduce((acc, idOfSibling, index) => {
                   if (index === idsOfChildren.length - 1) {
                     return acc;
@@ -155,6 +160,7 @@ export default class FileWriter extends flow.AbstractProject {
       }
       idOfChildOfNodeId = idOfChild;
     }
+    // @ts-ignore
     if (typeof idOfChildOfNodeId === "undefined") {
       return;
     }
@@ -165,6 +171,7 @@ export default class FileWriter extends flow.AbstractProject {
    * @param variableId id of a variable to get
    */
   private getVariable(variableId: string): Partial<flow.Variable> {
+    // @ts-ignore
     return this.projectData.variables.find(variable => variable.id === variableId);
   }
   /**
@@ -180,6 +187,7 @@ export default class FileWriter extends flow.AbstractProject {
     const { platform } = this.projectData.project;
     const platformProvider = new PlatformProvider(platform, this.projectData);
     return Array.from(this.boardStructureByMessages.entries())
+      // @ts-ignore
       .reduce((acc, messageAndConnectedIntents) => {
         const [idOfConnectedMessage, idsOfConnectedIntents] = messageAndConnectedIntents;
         const message = this.getMessage(idOfConnectedMessage) as flow.Message;
@@ -210,7 +218,7 @@ export default class FileWriter extends flow.AbstractProject {
                     type: Watson.DialogNodeTypes.handler,
                     parent: nextValue[0].dialog_node,
                     context: {
-                      [name]: `$${name}`
+                      [name as string]: `$${name}`
                     },
                     conditions: `$${name}`,
                     event_name: Watson.EventNames.input,
@@ -257,6 +265,7 @@ export default class FileWriter extends flow.AbstractProject {
           ...messagesImplicitInConnectedMessage,
           {
             type: Watson.Types.standard,
+            // @ts-ignore
             title: message.payload.nodeName,
             output: platformProvider.create(message),
             parent,

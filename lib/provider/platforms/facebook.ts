@@ -21,7 +21,13 @@ export default class {
     return {
       template_type: Facebook.TemplateTypes.button,
       text: data.text,
-      buttons: data.buttons.map((button: any) => ({ type: button.type, url: button.payload, title: button.title, webview_height_ratio: "full" })),
+      // @ts-ignore
+      buttons: data.buttons.map((button: any) => ({
+        type: button.type,
+        url: button.payload,
+        title: button.title,
+        webview_height_ratio: Facebook.Ratios.full,
+      })),
     };
   }
 };
