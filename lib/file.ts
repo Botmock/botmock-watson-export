@@ -6,16 +6,16 @@ import { EOL } from "os";
 import { default as PlatformProvider } from "./provider";
 
 export namespace Watson {
-  export type DialogNodes = Partial<{
+  export type DialogNodes = Partial<ReadonlyArray<{
     type: string;
     title: string;
-    output: {};
+    output: { [key: string]: any };
     parent: string;
-    next_step: {};
+    next_step: { [key: string]: any };
     previous_sibling: string;
     conditions: string;
     dialog_node: string;
-  }>[];
+  }>>;
   export enum SupportedPlatforms {
     slack = "slack",
     facebook = "facebook",
