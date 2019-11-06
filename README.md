@@ -10,7 +10,7 @@ This script produces a `.json` file able to be imported as a skill in the IBM Wa
 
 * [Overview](#overview)
   * [Botmock project structure](#botmock-project-structure)
-  * [Approach to importing](#approach-to-importing)
+  * [Caveats](#caveats)
   * [Prerequisites](#prerequisites)
     * [nodejs](#nodejs)
     * [watson](#watson)
@@ -19,8 +19,6 @@ This script produces a `.json` file able to be imported as a skill in the IBM Wa
     * [env](#env)
   * [Commands](#commands)
     * [start](#start)
-    <!-- * [csv](#csv) -->
-    <!-- * [report](#report) -->
   * [Importing](#importing)
     * [skill](#skill)
 
@@ -28,7 +26,11 @@ This script produces a `.json` file able to be imported as a skill in the IBM Wa
 
 ### Botmock project structure
 
-### Approach to importing
+Intents on connectors in your original project are what break up the flow into separate Dialog Nodes in Watson. Each Dialog Node in Watson will have as a condition the intent that is connected to it. Once this intent is recognized in Watson, responses will be made that correspond to the content blocks connected (without intents) to the first content block.
+
+### Caveats
+
+> Note that for data surrounding [slot-filling](https://cloud.ibm.com/docs/services/assistant?topic=assistant-tutorial-slots-complex) in your original project to appear available in the Watson Assistant dashboard, you must navigate to the node containing slot-filling within the **Dialog** section of the skill and click **Customize**. Upon doing so, you should discover your data from your original project appears automatically within the dashboard.
 
 ### Prerequisites
 
@@ -43,7 +45,7 @@ node --version
 
 #### Watson
 
-- [IBM Watson]() account
+- [IBM account with Watson Assistant enabled](https://assistant-us-east.watsonplatform.net/)
 
 ### Installation
 
@@ -76,22 +78,11 @@ To get your Botmock API token, follow the [guide](http://help.botmock.com/en/art
 
 #### `start`
 
-Populates `/output` with `.json` files produced from your original project.
+Populates `/output` with `.json` file produced from your original project.
 
 ```shell
 npm start
 ```
-
-<!-- #### `csv`
-
-Intents can be [uploaded in bulk](https://cloud.ibm.com/docs/services/assistant?topic=assistant-intents#intents-import) to Watson Assistant.
-
-```shell
-# create a .csv file from your project's intents and utterances
-npm run csv
-```
-
-#### `report` -->
 
 ### Importing
 

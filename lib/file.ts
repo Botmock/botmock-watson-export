@@ -210,9 +210,9 @@ export default class FileWriter extends flow.AbstractProject {
                     type: Watson.DialogNodeTypes.handler,
                     parent: nextValue[0].dialog_node,
                     context: {
-                      [name]: `@${name}`
+                      [name]: `$${name}`
                     },
-                    conditions: `@${name}`,
+                    conditions: `$${name}`,
                     event_name: Watson.EventNames.input,
                     dialog_node: `handler_${uuid()}`,
                   });
@@ -339,6 +339,9 @@ export default class FileWriter extends flow.AbstractProject {
       counterexamples: [],
       system_settings: {
         spelling_auto_correct: true,
+        tooling: {
+          store_generic_responses: true,
+        },
       },
       learning_opt_out: false,
       status: FileWriter.status,
