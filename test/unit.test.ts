@@ -16,11 +16,23 @@ afterAll(async () => {
 });
 
 describe("fields of generated json", () => {
-  test("dialog nodes field is correct for mock project", async () => {
-    const { name } = projectData.project;
+  let json: unknown;
+  beforeEach(async () => {
     await instance.write();
-    const json = JSON.parse(await readFile(join(outputDirectory, `${name}.json`), "utf8"))
+    const { name } = projectData.project;
+    json = JSON.parse(await readFile(join(outputDirectory, `${name}.json`), "utf8"));
+  });
+
+  test("contains correct number of fields", () => {
+    // @ts-ignore
+    expect(Object.keys(json)).toHaveLength(13);
+  });
+  test("dialog nodes field is correct for mock project", async () => {
     expect(json).toHaveProperty("dialog_nodes");
+    // @ts-ignore
     expect(json.dialog_nodes[0].dialog_node).toMatch(/node_[a-z0-9|-]+/);
   });
+  test.todo("name field is the name of the mock project");
+  test.todo("intents field has correct length");
+  test.todo("entities field has correct length");
 });

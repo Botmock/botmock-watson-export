@@ -134,7 +134,6 @@ export default class PlatformProvider extends AbstractProject {
     return {
       ...platformSpecificResponse,
       selection_policy: Watson.SelectionPolicies.sequential,
-      // response_type: methodToCallOnClass,
       generic: genericResponses,
     };
   }
