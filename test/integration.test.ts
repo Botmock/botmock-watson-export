@@ -1,25 +1,24 @@
-import { remove } from "fs-extra";
+import { remove, mkdirp, readFile } from "fs-extra";
+import { EOL, tmpdir } from "os";
 import { execSync } from "child_process";
 import { join } from "path";
-import { EOL } from "os";
-// import { projectData } from "./fixtures";
 
-describe("run", () => {
-  const pathToDefaultOutputDirectory = join(process.cwd(), "output");
-  afterAll(async () => {
-    await remove(pathToDefaultOutputDirectory);
-  });
-  test("outputs correct number of newlines", () => {
-    const res = execSync("npm start");
-    expect(res.toString().split(EOL).length).toBeGreaterThanOrEqual(9);
-  });
+let execution: unknown;
+const pathToDefaultOutputDirectory = join(tmpdir(), "output");
+
+beforeEach(async () => {
+  await mkdirp(pathToDefaultOutputDirectory);
+  execution = execSync("npm start");
 });
 
-describe("file contents after npm start", () => {
-  beforeEach(() => {
-    execSync("npm start");
+afterEach(async () => {
+  await remove(pathToDefaultOutputDirectory);
+});
+
+describe("run", () => {
+  test("outputs correct number of newlines", () => {
+    expect(execution.toString().split(EOL).length).toBeGreaterThanOrEqual(9);
   });
-  test.todo("json file has fields implied by fixture project structure");
 });
 
 describe("data fetching", () => {
