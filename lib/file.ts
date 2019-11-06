@@ -218,9 +218,9 @@ export default class FileWriter extends flow.AbstractProject {
                     type: Watson.DialogNodeTypes.handler,
                     parent: nextValue[0].dialog_node,
                     context: {
-                      [name as string]: `$${name}`
+                      [name as string]: `@${name}`
                     },
-                    conditions: `$${name}`,
+                    conditions: `@${name}`,
                     event_name: Watson.EventNames.input,
                     dialog_node: `handler_${uuid()}`,
                   });
@@ -253,11 +253,12 @@ export default class FileWriter extends flow.AbstractProject {
         const { nodeId: parent, siblingLinkedList = new Map() } = this.findSegmentedParentOfDialogNode(idOfConnectedMessage) || {};
         const previousSiblingId = siblingLinkedList.get(message.message_id);
         const previousSibling = typeof previousSiblingId === "undefined" ? undefined : `node_${previousSiblingId}`;
-        const nextStep = this.findSegmentedChildOfDialogNode(idOfConnectedMessage)
+        const segmentedChildNodeId = this.findSegmentedChildOfDialogNode(idOfConnectedMessage);
+        const nextStep = segmentedChildNodeId && !previousSiblingId
           ? {
               behavior: Watson.Behaviors.jump,
               selector: Watson.Selectors.user,
-              dialog_node: this.findSegmentedChildOfDialogNode(idOfConnectedMessage),
+              dialog_node: segmentedChildNodeId,
             }
           : undefined;
         return [
