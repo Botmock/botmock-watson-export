@@ -62,7 +62,7 @@ export default class PlatformProvider extends AbstractProject {
     return [message, ...this.gatherMessagesUpToNextIntent(message)]
       .map(message => {
         const { message_type: contentBlockType } = message;
-        let methodToCallOnClass: string;
+        let methodToCallOnClass: string | void;
         switch (contentBlockType) {
           case "api":
           case "jump":
@@ -80,8 +80,9 @@ export default class PlatformProvider extends AbstractProject {
             break;
           default:
             methodToCallOnClass = Object.getOwnPropertyNames(
+              // @ts-ignore
               Object.getPrototypeOf(this.platform)).find(prop => contentBlockType.includes(prop)
-            );
+            ) as string;
         }
         if (!methodToCallOnClass) {
           methodToCallOnClass = "text";
@@ -94,12 +95,14 @@ export default class PlatformProvider extends AbstractProject {
             selection_policy: Watson.SelectionPolicies.sequential,
           },
           genericResponse: {
+            // @ts-ignore
             ...genericInstance[methodToCallOnClass](message.payload),
             response_type: methodToCallOnClass,
             selection_policy: Watson.SelectionPolicies.sequential,
           }
         };
       })
+      // @ts-ignore
       .reduce((acc, { platformResponse, genericResponse }) => {
         return {
           platformResponses: [...acc.platformResponses, platformResponse],
