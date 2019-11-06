@@ -30,7 +30,7 @@ Intents on connectors in your original project are what break up the flow into s
 
 ### Caveats
 
-> Note that for data surrounding [slot-filling](https://cloud.ibm.com/docs/services/assistant?topic=assistant-tutorial-slots-complex) in your original project to appear available in the Watson Assistant dashboard, you must navigate to the node containing slot-filling within the **Dialog** section of the skill and click **Customize**. Upon doing so, you should discover your data from your original project appears automatically within the dashboard.
+> Note that for data surrounding [slot-filling](https://cloud.ibm.com/docs/services/assistant?topic=assistant-tutorial-slots-complex) in your original project to appear available in the Watson Assistant dashboard, you must navigate to the node containing slot-filling within the **Dialog** section of the skill and click **Customize** and then turn slot-filling on. Upon doing so, you should discover your data from your original project appears automatically within the dashboard.
 
 ### Prerequisites
 
