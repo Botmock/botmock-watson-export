@@ -1,18 +1,17 @@
-import { remove, mkdirp, readFile } from "fs-extra";
-import { EOL, tmpdir } from "os";
+import { remove, mkdirp, readFile, readdir } from "fs-extra";
 import { execSync } from "child_process";
 import { join } from "path";
+import { EOL } from "os";
 
 let execution: unknown;
-const pathToDefaultOutputDirectory = join(tmpdir(), "output");
-
+const pathToOutputDirectory = join(process.cwd(), "output");
 beforeEach(async () => {
-  await mkdirp(pathToDefaultOutputDirectory);
+  await mkdirp(pathToOutputDirectory);
   execution = execSync("npm start");
 });
 
 afterEach(async () => {
-  await remove(pathToDefaultOutputDirectory);
+  await remove(pathToOutputDirectory);
 });
 
 describe("run", () => {
@@ -20,8 +19,7 @@ describe("run", () => {
     // @ts-ignore
     expect(execution.toString().split(EOL).length).toBeGreaterThanOrEqual(9);
   });
-});
-
-describe("data fetching", () => {
-  test.todo("batcher provides file writer with correct project data");
+  test("file is written to output directory", async () => {
+    expect(await readdir(pathToOutputDirectory)).toHaveLength(1);
+  });
 });
