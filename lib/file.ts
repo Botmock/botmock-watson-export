@@ -266,11 +266,10 @@ export default class FileWriter extends flow.AbstractProject {
           ...messagesImplicitInConnectedMessage,
           {
             type: Watson.Types.standard,
-            // @ts-ignore
-            title: message.payload.nodeName,
+            title: (message.payload as flow.Message["payload"] as { nodeName: string }).nodeName,
             output: platformProvider.create(message),
             parent,
-            next_step: nextStep,
+            // next_step: nextStep,
             previous_sibling: previousSibling,
             conditions: firstCondition,
             dialog_node: nodeId,
