@@ -1,126 +1,98 @@
 # Botmock IBM Watson Export Script
 
-import [Botmock](https://botmock.com) projects as Watson Assistant skills
+[![Build Status](https://dev.azure.com/botmock/botmock-watson-export/_apis/build/status/Botmock.botmock-watson-export?branchName=master)](https://dev.azure.com/botmock/botmock-watson-export/_build/latest?definitionId=5&branchName=master)
 
-- Tutorial Video (Coming Soon)
-- Documentation (Coming Soon)
-- [Support Email](mailto:help@botmock.com)
+> Create IBM Watson Assistant [skills](https://cloud.ibm.com/docs/services/assistant?topic=assistant-skill-add) from Botmock projects
 
-## Prerequisites
+This script produces a `.json` file able to be imported as a skill in the IBM Watson Assistant dashboard.
 
-- [Node.js](https://nodejs.org/en/) >= 10.16.x
+## Table of Contents
+
+* [Overview](#overview)
+  * [Botmock project structure](#botmock-project-structure)
+  * [Caveats](#caveats)
+  * [Prerequisites](#prerequisites)
+    * [nodejs](#nodejs)
+    * [watson](#watson)
+  * [Installation](#installation)
+    * [clone](#clone)
+    * [env](#env)
+  * [Commands](#commands)
+    * [start](#start)
+  * [Importing](#importing)
+    * [skill](#skill)
+
+## Overview
+
+### Botmock project structure
+
+Intents on connectors in your original project are what break up the flow into separate Dialog Nodes in Watson. Each Dialog Node in Watson will have as a condition the intent that is connected to it. Once this intent is recognized in Watson, responses will be made that correspond to the content blocks connected (without intents) to the first content block.
+
+### Caveats
+
+> Note that for data surrounding [slot-filling](https://cloud.ibm.com/docs/services/assistant?topic=assistant-tutorial-slots-complex) in your original project to appear available in the Watson Assistant dashboard, you must navigate to the node containing slot-filling within the **Dialog** section of the skill and click **Customize** and then turn slot-filling on. Upon doing so, you should discover your data from your original project appears automatically within the dashboard.
+
+### Prerequisites
+
+#### NodeJS
+
+- [NodeJS](https://nodejs.org/en/) Version 12.x
 
 ```shell
+# check node version
 node --version
 ```
 
-## Guide
+#### Watson
 
-### Setup
+- [IBM account with Watson Assistant enabled](https://assistant-us-east.watsonplatform.net/)
 
-- Clone this repo by running `git clone git@github.com:Botmock/botmock-watson-export.git`
+### Installation
 
-- Run `npm install`.
+#### Clone
 
-- Create a `.env` file with the following variables (and your values filled in):
+Clone this repository and install dependencies:
 
-```console
+```shell
+git clone git@github.com:Botmock/botmock-watson-export.git
+
+cd botmock-watson-export
+
+npm i
+```
+
+#### Env
+
+Create `.env` in `/botmock-watson-export` and fill in values for the following:
+
+```shell
 BOTMOCK_TOKEN=@botmock-token
 BOTMOCK_TEAM_ID=@botmock-team-id
-BOTMOCK_PROJECT_ID=@botmock-project-id
 BOTMOCK_BOARD_ID=@botmock-board-id
+BOTMOCK_PROJECT_ID=@botmock-project-id
 ```
 
-- Run `npm start`.
+To get your Botmock API token, follow the [guide](http://help.botmock.com/en/articles/2334581-developer-api).
 
-- Find generated JSON in `./output`.
+### Commands
 
-The generated `.json` file should look something like:
+#### `start`
 
-```json
-{
-  "name": "directions",
-  "intents": [
-    {
-      "intent": "hi",
-      "examples": [
-        {
-          "text": "hi!"
-        },
-        {
-          "text": "hello!"
-        }
-      ],
-      "created": "2019-05-31 15:40:24.000000",
-      "updated": "2019-05-31 15:40:24.000000"
-    }
-  ],
-  "entities": [],
-  "language": "en",
-  "metadata": {},
-  "description": "",
-  "dialog_nodes": [
-    {
-      "output": {
-        "generic": [
-          {
-            "response_type": "text",
-            "values": [
-              {
-                "text": "(This is the end.)"
-              }
-            ]
-          }
-        ]
-      },
-      "title": "end",
-      "next_step": {
-        "behavior": "skip_user_input",
-        "selector": "body",
-        "dialog_node": ""
-      },
-      "conditions": "anything_else",
-      "parent": "8d50be9e-de4d-4870-91c4-7292ba2b4a73",
-      "dialog_node": "3c8b34da-1a37-47f7-9116-5cb044048616",
-      "context": {}
-    }
-  ],
-  "workspace_id": "",
-  "counterexamples": [],
-  "learning_opt_out": false,
-  "status": "Non Existent",
-  "created": "2019-05-29 19:06:45.000000",
-  "updated": "2019-07-09 17:53:32.000000"
-}
+Populates `/output` with `.json` file produced from your original project.
+
+```shell
+npm start
 ```
 
-### Importing into Watson
+### Importing
 
-- Visit your [IBM dashboard](https://cloud.ibm.com)
+Once `npm start` is successfully run, the generated `.json` should be able to be imported.
 
-- If you have preexisting Services in your Resource summary, choose them
-
-- Otherwise, **Create resource** and choose Watson Assistant under 'AI'
-
-- Find your Assistant service; then **Launch tool**
-
-- Choose the 'Skills' tab and **Create new**
-
-- Choose **Import skill**, and choose the previously generated `.json` file
-
-## Want to help?
-
-Found bugs or have some ideas to improve this repo? We'd love to to hear from you! You can start by submitting an issue at the [Issues](https://github.com/Botmock/botmock-watson-export/issues) tab. If you want, feel free to submit a pull request and propose a change as well!
-
-### Submitting a Pull Request
-
-1. Create an issue. The more information, the better!
-2. Fork the Repository.
-3. Make a new change under a branch based on master.
-4. Make a Pull Request with a brief description of the changes you've made. Reference the issue.
-
-_NOTE: Make sure to leave any sensitive information out of an issue when reporting a bug with imagery or copying and pasting error data. We want to make sure all your info is safe!_
-
-## License
-
-Botmock Watson Export is copyright © 2019 Botmock. It is free software, and may be redistributed under the terms specified in the LICENSE file.
+- go to the [IBM dashboard](https://cloud.ibm.com/)
+- click **Services**
+- click on one of the **Services**, or **Create resource** and then **Watson Assistant** and **Create**
+- click **Launch Watson Assistant**
+- click on an existing assistant, or **Create assistant**
+- click **Add dialog skill**
+- click **Import skill**
+- choose the `.json` file generated by this script

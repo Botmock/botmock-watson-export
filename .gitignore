@@ -1,3 +1,5 @@
 node_modules
 output
+err.json
+.vscode
 *.env
