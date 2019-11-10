@@ -1,5 +1,7 @@
 # Botmock IBM Watson Export Script
 
+[![btmock-watson-setup-demo-gif-step.gif](https://s5.gifyu.com/images/btmock-watson-setup-demo-gif-step.gif)](https://gifyu.com/image/vLcV)
+
 [![Build Status](https://dev.azure.com/botmock/botmock-watson-export/_apis/build/status/Botmock.botmock-watson-export?branchName=master)](https://dev.azure.com/botmock/botmock-watson-export/_build/latest?definitionId=5&branchName=master)
 
 > Create IBM Watson Assistant [skills](https://cloud.ibm.com/docs/services/assistant?topic=assistant-skill-add) from Botmock projects
