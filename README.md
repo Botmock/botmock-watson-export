@@ -45,7 +45,7 @@ node --version
 
 #### Watson
 
-- [IBM account with Watson Assistant enabled](https://assistant-us-east.watsonplatform.net/)
+- [IBM Cloud Account with Watson Assistant enabled](https://assistant-us-east.watsonplatform.net/)
 
 ### Installation
 
