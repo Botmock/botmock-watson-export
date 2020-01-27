@@ -23,9 +23,7 @@ async function recreateOutputDirectories(paths: Paths): Promise<void> {
 
 /**
  * Calls all fetch methods and calls all write methods
- *
  * @remark entry point to the script
- *
  * @param args argument vector
  */
 async function main(args: string[]): Promise<void> {
@@ -55,6 +53,7 @@ async function main(args: string[]): Promise<void> {
     outputDirectory,
     projectData
   });
+  // @ts-ignore
   fileWriter.on("write-complete", ({ basename }) => {
     log(`wrote ${basename}`);
   });
