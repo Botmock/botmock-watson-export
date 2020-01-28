@@ -28,7 +28,7 @@ async function recreateOutputDirectories(paths: Paths): Promise<void> {
  */
 async function main(args: string[]): Promise<void> {
   const DEFAULT_OUTPUT = "output";
-  let [,, outputDirectory] = args;
+  let [, , outputDirectory] = args;
   if (typeof outputDirectory === "undefined") {
     outputDirectory = process.env.OUTPUT_DIR || DEFAULT_OUTPUT;
   }
@@ -61,8 +61,8 @@ async function main(args: string[]): Promise<void> {
   log("done");
 }
 
-process.on("unhandledRejection", () => {});
-process.on("uncaughtException", () => {});
+process.on("unhandledRejection", () => { });
+process.on("uncaughtException", () => { });
 
 main(process.argv).catch(async (err: Error) => {
   log(err.stack as string, { isError: true });
