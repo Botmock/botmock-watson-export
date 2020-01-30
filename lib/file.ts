@@ -200,26 +200,16 @@ export default class FileWriter extends flow.AbstractProject {
           previousSibling = lastNodeInAccumulatorWithComputedParent.dialog_node;
           parentNodeId = undefined;
         }
-        // const previousSiblingId = siblingLinkedList.get(message.message_id);
-        // const previousSibling = typeof previousSiblingId === "undefined" ? undefined : `node_${previousSiblingId}`;
-        // const segmentedChildNodeId = this.findSegmentedChildOfDialogNode(idOfConnectedMessage);
-        // const nextStep = segmentedChildNodeId && !previousSiblingId
-        //   ? {
-        //     behavior: Watson.Behaviors.jump,
-        //     selector: Watson.Selectors.user,
-        //     dialog_node: segmentedChildNodeId,
-        //   }
-        //   : undefined;
         return [
           ...acc,
           ...messagesImplicitInConnectedMessage,
           {
             type: Watson.Types.standard,
-            // @ts-ignore
-            title: message.payload.nodeName,
+            title: message.payload?.nodeName,
             output: platformProvider.create(message),
             parent: parentNodeId,
-            // next_step: nextStep,
+            // @todo
+            next_step: undefined,
             previous_sibling: previousSibling,
             conditions: firstCondition,
             dialog_node: nodeId,
@@ -252,8 +242,7 @@ export default class FileWriter extends flow.AbstractProject {
     }] : [];
     const skillData = {
       name,
-      // @ts-ignore
-      intents: [...this.projectData.intents, ...pseudoIntent as flow.Intent].map(intent => ({
+      intents: [...this.projectData.intents, ...pseudoIntent as any].map(intent => ({
         intent: intent.name,
         description: intent.created_at.date,
         examples: intent.utterances.map((utterance: flow.Utterance) => {
