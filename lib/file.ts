@@ -17,7 +17,6 @@ export default class FileWriter extends flow.AbstractProject {
   private requiredSlotsByIntents: flow.SlotStructure;
   private readonly outputDirectory: string;
   private didSetPseudoWelcomeIntent: boolean = false;
-  private readonly parentChildSegmentedNodeMap: Map<string, string[]>;
   /**
    * Creates new instance of FileWriter class
    * @remarks Creates artificial welcome intent between the root node and the
@@ -37,66 +36,7 @@ export default class FileWriter extends flow.AbstractProject {
       this.boardStructureByMessages.set(firstMessage.message_id, Array.of(uuid()));
       this.didSetPseudoWelcomeIntent = true;
     }
-    this.parentChildSegmentedNodeMap = this.assembleParentChildSegmentedNodeMap();
   }
-  /**
-   * Assembles relation between parent and child dialog nodes in the segmented flow
-   * @remarks changes the original board structure by messages map by relating keys
-   * of that map to other keys of that map
-   * @returns relation between id of parent and child messages
-   */
-  private assembleParentChildSegmentedNodeMap(): Map<string, string[]> {
-    return new Map(Array.from(this.boardStructureByMessages.entries())
-      .reduce((acc, relationPair): any => {
-        const [idOfParentMessageFollowingIntent] = relationPair;
-        const parentMessage = this.getMessage(idOfParentMessageFollowingIntent) as flow.Message;
-        const [idOfChildMessageFollowingIntent] = [parentMessage, ...this.gatherMessagesUpToNextIntent(parentMessage)]
-          .map(message => message.next_message_ids as flow.NextMessage[])
-          .reduce(((acc, nextMessages): any => {
-            return [
-              ...acc,
-              nextMessages
-                .filter(message => this.boardStructureByMessages.get(message.message_id))
-                .map(message => message.message_id)
-                .filter(idOfMessage => typeof idOfMessage !== "undefined"),
-            ];
-          }), []);
-        return [...acc, [idOfParentMessageFollowingIntent, idOfChildMessageFollowingIntent]];
-      }, []));
-  }
-  /**
-   * Finds parent of connected message
-   * @param nodeId id of the node whose parent must be found
-   */
-  private findParentOfConnectedMessage(nodeId: string): ObjectLike<string | void> {
-    for (const [idOfParent, idsOfChildren] of Array.from(this.parentChildSegmentedNodeMap.entries())) {
-      for (const idOfChild of idsOfChildren) {
-        if (idOfChild === nodeId) {
-          return {
-            id: `node_${idOfParent}`,
-          };
-        }
-      }
-    }
-    return {};
-  }
-  /**
-   * Finds the dialog node that has this node as its parent
-   * @param nodeId id of the node whose child must be found
-   */
-  // private findSegmentedChildOfDialogNode(nodeId: string): string | void {
-  //   let idOfChildOfNodeId = "";
-  //   for (const [idOfParent, [idOfChild]] of Array.from(this.parentChildSegmentedNodeMap.entries())) {
-  //     if (idOfParent !== nodeId) {
-  //       continue;
-  //     }
-  //     idOfChildOfNodeId = idOfChild;
-  //   }
-  //   if (idOfChildOfNodeId === "") {
-  //     return;
-  //   }
-  //   return `node_${idOfChildOfNodeId}`;
-  // }
   /**
    * Gets full variable from an id
    * @param variableId id of a variable to get
@@ -168,12 +108,9 @@ export default class FileWriter extends flow.AbstractProject {
   }
   /**
    * Creates array of interrelated dialog nodes from flow structure
-   * @remarks on each iteration over board structure by messages,
-   * adds additional dialog nodes to the accumulator based on presence
-   * of any required slots
-   * @returns an array of dialog nodes representing the project structure
    * @see https://cloud.ibm.com/docs/assistant?topic=assistant-api-dialog-modify
-   * @todo add appropriate `next_step`
+   * @remarks on each iteration over board structure by messages tracks required slots
+   * @returns an array of dialog nodes representing the project structure
    */
   private mapDialogNodesForProject(): ReadonlyArray<Watson.DialogNodes> {
     const { platform } = this.projectData.project;
@@ -182,18 +119,17 @@ export default class FileWriter extends flow.AbstractProject {
     return Array.from(this.boardStructureByMessages.entries())
       .reduce((acc: Watson.DialogNodes[], messageAndConnectedIntents): any => {
         const [idOfConnectedMessage, idsOfConnectedIntents] = messageAndConnectedIntents;
-        const message = this.getMessage(idOfConnectedMessage) as flow.Message;
-        const nodeId = `node_${message.message_id}`;
+        const nodeId = `node_${idOfConnectedMessage}`;
         const [firstCondition = "#welcome"] = idsOfConnectedIntents
           .map(id => this.getIntent(id) as flow.Intent)
           .filter(intent => typeof intent !== "undefined")
           .map(({ name }) => `#${name}`);
-        const { id: parentNodeId } = this.findParentOfConnectedMessage(idOfConnectedMessage);
+        let parentNode: string = "";
         let previousSibling: string | null = null;
         let lastNodeInAccumulatorWithComputedParent: any;
         for (const node of acc) {
           const { dialog_node: previousSiblingNodeId, parent } = node as any;
-          if (parent === parentNodeId && !seenSiblings.includes(previousSiblingNodeId)) {
+          if (parent === parentNode && !seenSiblings.includes(previousSiblingNodeId)) {
             lastNodeInAccumulatorWithComputedParent = node;
             seenSiblings.push(previousSiblingNodeId);
           }
@@ -202,10 +138,11 @@ export default class FileWriter extends flow.AbstractProject {
           previousSibling = lastNodeInAccumulatorWithComputedParent.dialog_node;
         }
         const tail = previousSibling ?? seenSiblings[seenSiblings.length - 1];
-        const messagesImplicitInConnectedMessage = this.getSlotNodesForConnectedIntentIds(idsOfConnectedIntents, tail);
+        const messagesImplicitInConnectedMessage
+          = this.getSlotNodesForConnectedIntentIds(idsOfConnectedIntents, tail);
         const type = messagesImplicitInConnectedMessage.length > 0
           ? Watson.DialogNodeTypes.FRAME : Watson.DialogNodeTypes.STANDARD;
-        console.log(parentNodeId);
+        const message = this.getMessage(idOfConnectedMessage) as flow.Message;
         return [
           ...acc,
           ...messagesImplicitInConnectedMessage,
@@ -213,7 +150,7 @@ export default class FileWriter extends flow.AbstractProject {
             type,
             title: message.payload?.nodeName,
             output: platformProvider.create(message),
-            parent: parentNodeId,
+            parent: parentNode,
             // @todo
             next_step: undefined,
             previous_sibling: previousSibling,
