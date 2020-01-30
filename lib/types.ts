@@ -2,6 +2,11 @@ export type ObjectLike<T> = { [key: string]: T; };
 
 export type ProjectData<T> = T extends Promise<infer K> ? K : any;
 
+export interface Config {
+  readonly outputDirectory: string;
+  readonly projectData: unknown;
+}
+
 export namespace Watson {
   export type DialogNodes = Partial<ReadonlyArray<{
     type: string;

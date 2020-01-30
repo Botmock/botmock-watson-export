@@ -4,14 +4,9 @@ import { writeJson } from "fs-extra";
 import { join } from "path";
 import { EOL } from "os";
 import { default as PlatformProvider } from "./provider";
-import { ObjectLike, Watson, ProjectData } from "./types";
+import { ObjectLike, Watson, ProjectData, Config } from "./types";
 
 export { Watson } from "./types";
-
-interface IConfig {
-  readonly outputDirectory: string;
-  readonly projectData: unknown;
-}
 
 export default class FileWriter extends flow.AbstractProject {
   static language = "en";
@@ -29,7 +24,7 @@ export default class FileWriter extends flow.AbstractProject {
    * first message if no intent is present
    * @param config Object containing project data and path to output directory
    */
-  constructor(config: IConfig) {
+  constructor(config: Config) {
     super({ projectData: config.projectData as ProjectData<typeof config.projectData> });
     this.outputDirectory = config.outputDirectory;
     this.requiredSlotsByIntents = this.representRequirementsForIntents();
@@ -187,16 +182,13 @@ export default class FileWriter extends flow.AbstractProject {
         let previousSibling: string | void;
         let lastNodeInAccumulatorWithComputedParent: any;
         for (const node in acc) {
-          // @ts-ignore
-          const { dialog_node: previousSiblingNodeId, parent } = node;
+          const { dialog_node: previousSiblingNodeId, parent } = node as any;
           if (parent === parentNodeId && !seenSiblings.includes(previousSiblingNodeId)) {
-            // @ts-ignore
             lastNodeInAccumulatorWithComputedParent = node;
             seenSiblings.push(previousSiblingNodeId);
           }
         }
         if (typeof lastNodeInAccumulatorWithComputedParent !== "undefined") {
-          // @ts-ignore
           previousSibling = lastNodeInAccumulatorWithComputedParent.dialog_node;
           parentNodeId = undefined;
         }
