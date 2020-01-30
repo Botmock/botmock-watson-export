@@ -1,5 +1,7 @@
 export type ObjectLike<T> = { [key: string]: T; };
 
+// export type Linked<T> = Map<T, T>;
+
 export type ProjectData<T> = T extends Promise<infer K> ? K : any;
 
 export interface Config {
@@ -42,14 +44,10 @@ export namespace Watson {
   export enum Conditions {
     anything = "anything_else",
   }
-  export enum Types {
-    standard = "standard",
-    frame = "frame",
-  }
   export enum DialogNodeTypes {
-    handler = "event_handler",
-    frame = "frame",
-    slot = "slot",
-    standard = "standard",
+    HANDLER = "event_handler",
+    FRAME = "frame",
+    SLOT = "slot",
+    STANDARD = "standard",
   }
 }

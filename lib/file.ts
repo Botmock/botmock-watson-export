@@ -105,11 +105,74 @@ export default class FileWriter extends flow.AbstractProject {
     return this.projectData.variables.find(variable => variable.id === variableId) ?? {};
   }
   /**
+   * Turns required slots into dialog node triples
+   * @param connectedIntentIds ids of connected intents
+   * @param tail tail from linked list of siblings
+   */
+  private getSlotNodesForConnectedIntentIds(ids: string[], tail: string): ReadonlyArray<ObjectLike<string | object>> {
+    return ids
+      .filter(intentId => {
+        const requiredSlots = this.requiredSlotsByIntents.get(intentId);
+        return Array.isArray(requiredSlots) && requiredSlots.length > 0;
+      })
+      .map(intentId => this.requiredSlotsByIntents.get(intentId) as any)
+      .reduce((acc, slotsRequiredForIntent) => {
+        const [firstRequiredSlot] = slotsRequiredForIntent;
+        let iterations = 0;
+        let nextValue: ObjectLike<string | object>[] = [];
+        const { name } = this.getVariable(firstRequiredSlot.variable_id);
+        while (iterations < 3) {
+          switch (iterations) {
+            case 0:
+              nextValue.push({
+                type: Watson.DialogNodeTypes.SLOT,
+                parent: tail,
+                variable: `$${name}`,
+                dialog_node: `slot_${uuid()}`,
+              });
+              break;
+            case 1:
+              nextValue.push({
+                type: Watson.DialogNodeTypes.HANDLER,
+                parent: tail,
+                previous_sibling: nextValue[0].dialog_node,
+                context: {
+                  [name as string]: `@${name}`
+                },
+                conditions: `@${name}`,
+                event_name: Watson.EventNames.input,
+                dialog_node: `handler_${uuid()}`,
+              });
+              break;
+            case 2:
+              nextValue.push({
+                type: Watson.DialogNodeTypes.HANDLER,
+                output: {
+                  text: {
+                    values: [firstRequiredSlot.prompt],
+                    selection_policy: Watson.SelectionPolicies.sequential,
+                  }
+                },
+                parent: tail,
+                previous_sibling: nextValue[1].dialog_node,
+                event_name: Watson.EventNames.focus,
+                dialog_node: `handler_${uuid()}`,
+                // previous_sibling: nextValue[iterations - 1].dialog_node,
+              });
+              break;
+          }
+          iterations += 1;
+        }
+        return [...acc, ...nextValue];
+      }, []);
+  }
+  /**
    * Creates array of interrelated dialog nodes from flow structure
    * @remarks on each iteration over board structure by messages,
    * adds additional dialog nodes to the accumulator based on presence
    * of any required slots
    * @returns an array of dialog nodes representing the project structure
+   * @see https://cloud.ibm.com/docs/assistant?topic=assistant-api-dialog-modify
    * @todo add appropriate `next_step`
    */
   private mapDialogNodesForProject(): ReadonlyArray<Watson.DialogNodes> {
@@ -121,68 +184,14 @@ export default class FileWriter extends flow.AbstractProject {
         const [idOfConnectedMessage, idsOfConnectedIntents] = messageAndConnectedIntents;
         const message = this.getMessage(idOfConnectedMessage) as flow.Message;
         const nodeId = `node_${message.message_id}`;
-        const messagesImplicitInConnectedMessage: ObjectLike<string | object>[] = idsOfConnectedIntents
-          .filter(intentId => {
-            const requiredSlots = this.requiredSlotsByIntents.get(intentId);
-            return Array.isArray(requiredSlots) && requiredSlots.length > 0;
-          })
-          .map(intentId => this.requiredSlotsByIntents.get(intentId) as any)
-          // turn required slots into dialog node triple
-          .reduce((acc, slotsRequiredForIntent) => {
-            const [firstRequiredSlot] = slotsRequiredForIntent;
-            let iterations = 0;
-            let nextValue: ObjectLike<string | object>[] = [];
-            const { name } = this.getVariable(firstRequiredSlot.variable_id);
-            while (iterations < 3) {
-              switch (iterations) {
-                case 0:
-                  nextValue.push({
-                    type: Watson.DialogNodeTypes.slot,
-                    parent: nodeId,
-                    variable: `$${name}`,
-                    dialog_node: `slot_${uuid()}`,
-                  });
-                  break;
-                case 1:
-                  nextValue.push({
-                    type: Watson.DialogNodeTypes.handler,
-                    parent: nextValue[0].dialog_node,
-                    context: {
-                      [name as string]: `@${name}`
-                    },
-                    conditions: `@${name}`,
-                    event_name: Watson.EventNames.input,
-                    dialog_node: `handler_${uuid()}`,
-                  });
-                  break;
-                case 2:
-                  nextValue.push({
-                    type: Watson.DialogNodeTypes.handler,
-                    output: {
-                      text: {
-                        values: [firstRequiredSlot.prompt],
-                        selection_policy: Watson.SelectionPolicies.sequential,
-                      }
-                    },
-                    parent: nextValue[0].dialog_node,
-                    event_name: Watson.EventNames.focus,
-                    dialog_node: `handler_${uuid()}`,
-                    previous_sibling: nextValue[iterations - 1].dialog_node,
-                  });
-                  break;
-              }
-              iterations += 1;
-            }
-            return [...acc, ...nextValue];
-          }, []);
         const [firstCondition = "#welcome"] = idsOfConnectedIntents
           .map(id => this.getIntent(id) as flow.Intent)
           .filter(intent => typeof intent !== "undefined")
           .map(({ name }) => `#${name}`);
-        let { id: parentNodeId } = this.findParentOfConnectedMessage(idOfConnectedMessage) ?? {};
+        const { id: parentNodeId } = this.findParentOfConnectedMessage(idOfConnectedMessage);
         let previousSibling: string | null = null;
         let lastNodeInAccumulatorWithComputedParent: any;
-        for (const node in acc) {
+        for (const node of acc) {
           const { dialog_node: previousSiblingNodeId, parent } = node as any;
           if (parent === parentNodeId && !seenSiblings.includes(previousSiblingNodeId)) {
             lastNodeInAccumulatorWithComputedParent = node;
@@ -192,11 +201,16 @@ export default class FileWriter extends flow.AbstractProject {
         if (typeof lastNodeInAccumulatorWithComputedParent !== "undefined") {
           previousSibling = lastNodeInAccumulatorWithComputedParent.dialog_node;
         }
+        const tail = previousSibling ?? seenSiblings[seenSiblings.length - 1];
+        const messagesImplicitInConnectedMessage = this.getSlotNodesForConnectedIntentIds(idsOfConnectedIntents, tail);
+        const type = messagesImplicitInConnectedMessage.length > 0
+          ? Watson.DialogNodeTypes.FRAME : Watson.DialogNodeTypes.STANDARD;
+        console.log(parentNodeId);
         return [
           ...acc,
           ...messagesImplicitInConnectedMessage,
           {
-            type: Watson.Types.standard,
+            type,
             title: message.payload?.nodeName,
             output: platformProvider.create(message),
             parent: parentNodeId,
