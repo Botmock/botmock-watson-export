@@ -121,16 +121,17 @@ export default class FileWriter extends flow.AbstractProject {
         const [idOfConnectedMessage, idsOfConnectedIntents] = messageAndConnectedIntents;
         const message = this.getMessage(idOfConnectedMessage) as flow.Message;
         const nodeId = `node_${message.message_id}`;
-        const messagesImplicitInConnectedMessage: unknown[] = idsOfConnectedIntents
+        const messagesImplicitInConnectedMessage: ObjectLike<string | object>[] = idsOfConnectedIntents
           .filter(intentId => {
             const requiredSlots = this.requiredSlotsByIntents.get(intentId);
             return Array.isArray(requiredSlots) && requiredSlots.length > 0;
           })
           .map(intentId => this.requiredSlotsByIntents.get(intentId) as any)
+          // turn required slots into dialog node triple
           .reduce((acc, slotsRequiredForIntent) => {
             const [firstRequiredSlot] = slotsRequiredForIntent;
             let iterations = 0;
-            let nextValue: any[] = [];
+            let nextValue: ObjectLike<string | object>[] = [];
             const { name } = this.getVariable(firstRequiredSlot.variable_id);
             while (iterations < 3) {
               switch (iterations) {
@@ -179,7 +180,7 @@ export default class FileWriter extends flow.AbstractProject {
           .filter(intent => typeof intent !== "undefined")
           .map(({ name }) => `#${name}`);
         let { id: parentNodeId } = this.findParentOfConnectedMessage(idOfConnectedMessage) ?? {};
-        let previousSibling: string | void;
+        let previousSibling: string | null = null;
         let lastNodeInAccumulatorWithComputedParent: any;
         for (const node in acc) {
           const { dialog_node: previousSiblingNodeId, parent } = node as any;
@@ -190,7 +191,6 @@ export default class FileWriter extends flow.AbstractProject {
         }
         if (typeof lastNodeInAccumulatorWithComputedParent !== "undefined") {
           previousSibling = lastNodeInAccumulatorWithComputedParent.dialog_node;
-          parentNodeId = undefined;
         }
         return [
           ...acc,
