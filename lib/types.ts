@@ -1,6 +1,6 @@
 export type ObjectLike<T> = { [key: string]: T; };
 
-// export type Linked<T> = Map<T, T>;
+export type Slots = ReadonlyArray<ObjectLike<string | object>>;
 
 export type ProjectData<T> = T extends Promise<infer K> ? K : any;
 
@@ -10,7 +10,7 @@ export interface Config {
 }
 
 export namespace Watson {
-  export type DialogNodes = Partial<ReadonlyArray<{
+  export type DialogNodes = Partial<{
     type: string;
     title: string;
     output: { [key: string]: any; };
@@ -19,7 +19,7 @@ export namespace Watson {
     previous_sibling: string;
     conditions: string;
     dialog_node: string;
-  }>>;
+  }>;
   export enum SupportedPlatforms {
     slack = "slack",
     facebook = "facebook",

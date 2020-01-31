@@ -1,10 +1,11 @@
 import * as flow from "@botmock-api/flow";
 import { default as uuid } from "uuid/v4";
 import { writeJson } from "fs-extra";
+// import { strictEqual, strict } from "assert";
 import { join } from "path";
 import { EOL } from "os";
 import { default as PlatformProvider } from "./provider";
-import { ObjectLike, Watson, ProjectData, Config } from "./types";
+import { ObjectLike, Watson, ProjectData, Slots, Config } from "./types";
 
 export { Watson } from "./types";
 
@@ -17,6 +18,7 @@ export default class FileWriter extends flow.AbstractProject {
   private requiredSlotsByIntents: flow.SlotStructure;
   private readonly outputDirectory: string;
   private didSetPseudoWelcomeIntent: boolean = false;
+  // private readonly parentChildSegmentedNodeMap!: Map<string, string[]>;
   /**
    * Creates new instance of FileWriter class
    * @remarks Creates artificial welcome intent between the root node and the
@@ -47,9 +49,11 @@ export default class FileWriter extends flow.AbstractProject {
   /**
    * Turns required slots into dialog node triples
    * @param connectedIntentIds ids of connected intents
-   * @param tail tail from linked list of siblings
+   * @param parent parent from linked list of siblings
    */
-  private getSlotNodesForConnectedIntentIds(ids: string[], tail: string): ReadonlyArray<ObjectLike<string | object>> {
+  private getSlotNodesForConnectedIntentIds(ids: string[], parent: string): Slots {
+    // strictEqual(Object.is(parent, null), undefined);
+    // strictEqual(Object.is(parent, null), null);
     return ids
       .filter(intentId => {
         const requiredSlots = this.requiredSlotsByIntents.get(intentId);
@@ -64,40 +68,42 @@ export default class FileWriter extends flow.AbstractProject {
         while (iterations < 3) {
           switch (iterations) {
             case 0:
+              const slotId = `slot_${uuid()}`;
               nextValue.push({
                 type: Watson.DialogNodeTypes.SLOT,
-                parent: tail,
+                title: slotId,
+                parent,
                 variable: `$${name}`,
-                dialog_node: `slot_${uuid()}`,
+                dialog_node: slotId,
               });
               break;
             case 1:
+              const handlerId = `handler_${uuid()}`;
               nextValue.push({
                 type: Watson.DialogNodeTypes.HANDLER,
-                parent: tail,
-                previous_sibling: nextValue[0].dialog_node,
+                parent: nextValue[0].dialog_node,
                 context: {
                   [name as string]: `@${name}`
                 },
                 conditions: `@${name}`,
                 event_name: Watson.EventNames.input,
-                dialog_node: `handler_${uuid()}`,
+                dialog_node: handlerId,
               });
               break;
             case 2:
+              const promptHandlerId = `handler_${uuid()}`;
               nextValue.push({
                 type: Watson.DialogNodeTypes.HANDLER,
+                title: promptHandlerId,
                 output: {
                   text: {
                     values: [firstRequiredSlot.prompt],
                     selection_policy: Watson.SelectionPolicies.sequential,
                   }
                 },
-                parent: tail,
-                previous_sibling: nextValue[1].dialog_node,
+                parent: nextValue[1].dialog_node,
                 event_name: Watson.EventNames.focus,
-                dialog_node: `handler_${uuid()}`,
-                // previous_sibling: nextValue[iterations - 1].dialog_node,
+                dialog_node: promptHandlerId,
               });
               break;
           }
@@ -107,16 +113,32 @@ export default class FileWriter extends flow.AbstractProject {
       }, []);
   }
   /**
+   * @param childNodeId id of the node whose parent we are looking for
+   */
+  private findParentOfChild(childNodeId: string): string | void {
+    for (const en of this.boardStructureByMessages.entries()) {
+      const [parentNodeId] = en;
+      const fullParentNode = this.getMessage(parentNodeId);
+      for (const n of [fullParentNode, ...this.gatherMessagesUpToNextIntent(fullParentNode as flow.Message)]) {
+        // @ts-ignore
+        if (n.next_message_ids.map(v => v.message_id).includes(childNodeId)) {
+          return `node_${parentNodeId}`;
+        }
+      }
+    }
+  }
+  private findPreviousSiblingOfChild(childNodeId: string): string {
+    return "";
+  }
+  /**
    * Creates array of interrelated dialog nodes from flow structure
    * @see https://cloud.ibm.com/docs/assistant?topic=assistant-api-dialog-modify
    * @remarks on each iteration over board structure by messages tracks required slots
    * @returns an array of dialog nodes representing the project structure
    */
-  private mapDialogNodesForProject(): ReadonlyArray<Watson.DialogNodes> {
-    const { platform } = this.projectData.project;
-    const platformProvider = new PlatformProvider(platform, this.projectData);
-    const seenSiblings: string[] = [];
-    return Array.from(this.boardStructureByMessages.entries())
+  private mapDialogNodesForProject(): Watson.DialogNodes {
+    const platformProvider = new PlatformProvider(this.projectData.project.platform, this.projectData);
+    const nodes = Array.from(this.boardStructureByMessages.entries())
       .reduce((acc: Watson.DialogNodes[], messageAndConnectedIntents): any => {
         const [idOfConnectedMessage, idsOfConnectedIntents] = messageAndConnectedIntents;
         const nodeId = `node_${idOfConnectedMessage}`;
@@ -124,41 +146,34 @@ export default class FileWriter extends flow.AbstractProject {
           .map(id => this.getIntent(id) as flow.Intent)
           .filter(intent => typeof intent !== "undefined")
           .map(({ name }) => `#${name}`);
-        let parentNode: string = "";
-        let previousSibling: string | null = null;
-        let lastNodeInAccumulatorWithComputedParent: any;
-        for (const node of acc) {
-          const { dialog_node: previousSiblingNodeId, parent } = node as any;
-          if (parent === parentNode && !seenSiblings.includes(previousSiblingNodeId)) {
-            lastNodeInAccumulatorWithComputedParent = node;
-            seenSiblings.push(previousSiblingNodeId);
-          }
-        }
-        if (typeof lastNodeInAccumulatorWithComputedParent !== "undefined") {
-          previousSibling = lastNodeInAccumulatorWithComputedParent.dialog_node;
-        }
-        const tail = previousSibling ?? seenSiblings[seenSiblings.length - 1];
-        const messagesImplicitInConnectedMessage
-          = this.getSlotNodesForConnectedIntentIds(idsOfConnectedIntents, tail);
-        const type = messagesImplicitInConnectedMessage.length > 0
-          ? Watson.DialogNodeTypes.FRAME : Watson.DialogNodeTypes.STANDARD;
+        const parentNode = this.findParentOfChild(idOfConnectedMessage);
+        const previousSibling = this.findPreviousSiblingOfChild(idOfConnectedMessage);
+        const slotNodes = this.getSlotNodesForConnectedIntentIds(idsOfConnectedIntents, parentNode as string);
+        const type = slotNodes.length > 0 ? Watson.DialogNodeTypes.FRAME : Watson.DialogNodeTypes.STANDARD;
         const message = this.getMessage(idOfConnectedMessage) as flow.Message;
+        const [slotNodeSibling] = slotNodes;
+        // If there are slot nodes, the previous sibling should be set to the first slot node
+        if (typeof slotNodeSibling !== "undefined") {
+          // @ts-ignore
+          previousSibling = slotNodeSibling.dialog_node;
+        }
         return [
           ...acc,
-          ...messagesImplicitInConnectedMessage,
+          ...slotNodes,
           {
             type,
             title: message.payload?.nodeName,
             output: platformProvider.create(message),
-            parent: parentNode,
-            // @todo
-            next_step: undefined,
+            parent: parentNode ?? null,
+            // next_step: undefined,
             previous_sibling: previousSibling,
             conditions: firstCondition,
             dialog_node: nodeId,
           },
         ];
       }, []);
+    // @ts-ignore
+    return nodes;
   }
   /**
    * Strips variable sign from given name
