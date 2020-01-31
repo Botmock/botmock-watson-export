@@ -6,6 +6,7 @@ import { projectData } from "./fixtures";
 
 let instance: FileWriter;
 const outputDirectory = join(tmpdir(), projectData.project.platform);
+
 beforeAll(async () => {
   await mkdirp(outputDirectory);
   instance = new FileWriter({ outputDirectory, projectData });
@@ -16,7 +17,7 @@ afterAll(async () => {
 });
 
 describe("fields of generated json", () => {
-  let json: unknown;
+  let json: JSON;
   beforeEach(async () => {
     await instance.write();
     const { name } = projectData.project;
@@ -24,7 +25,6 @@ describe("fields of generated json", () => {
   });
 
   test("contains correct number of fields", () => {
-    // @ts-ignore
     expect(Object.keys(json)).toHaveLength(13);
   });
   test("dialog nodes field is correct for mock project", async () => {

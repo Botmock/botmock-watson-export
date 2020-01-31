@@ -33,7 +33,7 @@
   "homepage": "https://github.com/botmock/botmock-watson-export#readme",
   "dependencies": {
     "@botmock-api/client": "^1.0.0",
-    "@botmock-api/flow": "^0.7.0",
+    "@botmock-api/flow": "^0.8.0",
     "@botmock-api/log": "^0.2.0",
     "botmock": "^1.2.0",
     "chalk": "^2.4.2",
@@ -43,12 +43,12 @@
   },
   "devDependencies": {
     "@types/fs-extra": "^8.0.1",
-    "@types/jest": "^24.0.22",
-    "@types/node": "^12.12.6",
-    "@types/uuid": "^3.4.6",
+    "@types/jest": "^25.1.1",
+    "@types/node": "^13.5.3",
+    "@types/uuid": "^3.4.7",
     "jest": "^24.9.0",
-    "ts-jest": "^24.1.0",
-    "ts-node": "^8.4.1",
-    "typescript": "^3.7.2"
+    "ts-jest": "^25.1.0",
+    "ts-node": "^8.6.2",
+    "typescript": "^3.7.5"
   }
 }

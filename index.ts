@@ -23,14 +23,12 @@ async function recreateOutputDirectories(paths: Paths): Promise<void> {
 
 /**
  * Calls all fetch methods and calls all write methods
- *
  * @remark entry point to the script
- *
  * @param args argument vector
  */
 async function main(args: string[]): Promise<void> {
   const DEFAULT_OUTPUT = "output";
-  let [,, outputDirectory] = args;
+  let [, , outputDirectory] = args;
   if (typeof outputDirectory === "undefined") {
     outputDirectory = process.env.OUTPUT_DIR || DEFAULT_OUTPUT;
   }
@@ -55,6 +53,7 @@ async function main(args: string[]): Promise<void> {
     outputDirectory,
     projectData
   });
+  // @ts-ignore
   fileWriter.on("write-complete", ({ basename }) => {
     log(`wrote ${basename}`);
   });
@@ -62,8 +61,8 @@ async function main(args: string[]): Promise<void> {
   log("done");
 }
 
-process.on("unhandledRejection", () => {});
-process.on("uncaughtException", () => {});
+process.on("unhandledRejection", () => { });
+process.on("uncaughtException", () => { });
 
 main(process.argv).catch(async (err: Error) => {
   log(err.stack as string, { isError: true });
