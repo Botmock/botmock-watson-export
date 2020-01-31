@@ -18,7 +18,7 @@ export default class FileWriter extends flow.AbstractProject {
   private requiredSlotsByIntents: flow.SlotStructure;
   private readonly outputDirectory: string;
   private didSetPseudoWelcomeIntent: boolean = false;
-  // private readonly parentChildSegmentedNodeMap!: Map<string, string[]>;
+  // private previousSiblingMap: Map<string, string>;
   /**
    * Creates new instance of FileWriter class
    * @remarks Creates artificial welcome intent between the root node and the
@@ -38,6 +38,13 @@ export default class FileWriter extends flow.AbstractProject {
       this.boardStructureByMessages.set(firstMessage.message_id, Array.of(uuid()));
       this.didSetPseudoWelcomeIntent = true;
     }
+    // this.previousSiblingMap = new Map();
+    // for (const en of this.boardStructureByMessages.entries()) {
+    //   const [parentNodeId] = en;
+    //   const fullParentNode = this.getMessage(parentNodeId);
+    //   for (const n of [fullParentNode, ...this.gatherMessagesUpToNextIntent(fullParentNode as flow.Message)]) {
+    //   }
+    // }
   }
   /**
    * Gets full variable from an id
@@ -127,9 +134,6 @@ export default class FileWriter extends flow.AbstractProject {
       }
     }
   }
-  private findPreviousSiblingOfChild(childNodeId: string): string {
-    return "";
-  }
   /**
    * Creates array of interrelated dialog nodes from flow structure
    * @see https://cloud.ibm.com/docs/assistant?topic=assistant-api-dialog-modify
@@ -147,25 +151,30 @@ export default class FileWriter extends flow.AbstractProject {
           .filter(intent => typeof intent !== "undefined")
           .map(({ name }) => `#${name}`);
         const parentNode = this.findParentOfChild(idOfConnectedMessage);
-        const previousSibling = this.findPreviousSiblingOfChild(idOfConnectedMessage);
-        const slotNodes = this.getSlotNodesForConnectedIntentIds(idsOfConnectedIntents, parentNode as string);
-        const type = slotNodes.length > 0 ? Watson.DialogNodeTypes.FRAME : Watson.DialogNodeTypes.STANDARD;
-        const message = this.getMessage(idOfConnectedMessage) as flow.Message;
-        const [slotNodeSibling] = slotNodes;
-        // If there are slot nodes, the previous sibling should be set to the first slot node
-        if (typeof slotNodeSibling !== "undefined") {
-          // @ts-ignore
-          previousSibling = slotNodeSibling.dialog_node;
+        let previousSibling = null;
+        for (const n of acc) {
+          // if they share the same parent, set previous sibling accordingly
+          if (n.parent === parentNode) {
+            previousSibling = n.dialog_node;
+          }
         }
+        // const slotNodes = this.getSlotNodesForConnectedIntentIds(idsOfConnectedIntents, parentNode as string);
+        // const [slotNodeSibling] = slotNodes;
+        // // If there are slot nodes, the previous sibling should be set to the first slot node
+        // if (typeof slotNodeSibling !== "undefined") {
+        //   // @ts-ignore
+        //   previousSibling = slotNodeSibling.dialog_node;
+        // }
+        const type = [].length > 0 ? Watson.DialogNodeTypes.FRAME : Watson.DialogNodeTypes.STANDARD;
+        const message = this.getMessage(idOfConnectedMessage) as flow.Message;
         return [
           ...acc,
-          ...slotNodes,
+          // ...slotNodes,
           {
             type,
             title: message.payload?.nodeName,
             output: platformProvider.create(message),
             parent: parentNode ?? null,
-            // next_step: undefined,
             previous_sibling: previousSibling,
             conditions: firstCondition,
             dialog_node: nodeId,
