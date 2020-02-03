@@ -151,7 +151,7 @@ export default class FileWriter extends flow.AbstractProject {
         const parentNode = this.findParentOfChild(idOfConnectedMessage);
         let previousSibling = null;
         for (const n of acc) {
-          // if they share the same parent, set previous sibling accordingly
+          // if nodes share the same parent, set previous sibling to be previously seen node
           if (n.parent === parentNode) {
             previousSibling = n.dialog_node;
           }
@@ -184,7 +184,8 @@ export default class FileWriter extends flow.AbstractProject {
         if (m.type !== Watson.DialogNodeTypes.SLOT) {
           continue;
         }
-        if (m.parent === id) {
+        const { parent: parentOfSlotNode } = m;
+        if (parentOfSlotNode === id) {
           nodes[i] = {
             ...n,
             type: Watson.DialogNodeTypes.FRAME,
@@ -192,8 +193,7 @@ export default class FileWriter extends flow.AbstractProject {
         }
       }
     }
-    // @ts-ignore
-    return nodes;
+    return nodes as any;
   }
   /**
    * Strips variable sign from given name
