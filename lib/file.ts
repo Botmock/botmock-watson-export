@@ -18,7 +18,6 @@ export default class FileWriter extends flow.AbstractProject {
   private requiredSlotsByIntents: flow.SlotStructure;
   private readonly outputDirectory: string;
   private didSetPseudoWelcomeIntent: boolean = false;
-  // private previousSiblingMap: Map<string, string>;
   /**
    * Creates new instance of FileWriter class
    * @remarks Creates artificial welcome intent between the root node and the
@@ -38,13 +37,6 @@ export default class FileWriter extends flow.AbstractProject {
       this.boardStructureByMessages.set(firstMessage.message_id, Array.of(uuid()));
       this.didSetPseudoWelcomeIntent = true;
     }
-    // this.previousSiblingMap = new Map();
-    // for (const en of this.boardStructureByMessages.entries()) {
-    //   const [parentNodeId] = en;
-    //   const fullParentNode = this.getMessage(parentNodeId);
-    //   for (const n of [fullParentNode, ...this.gatherMessagesUpToNextIntent(fullParentNode as flow.Message)]) {
-    //   }
-    // }
   }
   /**
    * Gets full variable from an id
@@ -56,11 +48,10 @@ export default class FileWriter extends flow.AbstractProject {
   /**
    * Turns required slots into dialog node triples
    * @param connectedIntentIds ids of connected intents
-   * @param parent parent from linked list of siblings
+   * @param parent parent node
    */
   private getSlotNodesForConnectedIntentIds(ids: string[], parent: string): Slots {
-    // strictEqual(Object.is(parent, null), undefined);
-    // strictEqual(Object.is(parent, null), null);
+    let previousSiblingOfSlot: typeof parent;
     return ids
       .filter(intentId => {
         const requiredSlots = this.requiredSlotsByIntents.get(intentId);
@@ -72,6 +63,10 @@ export default class FileWriter extends flow.AbstractProject {
         let iterations = 0;
         let nextValue: ObjectLike<string | object>[] = [];
         const { name } = this.getVariable(firstRequiredSlot.variable_id);
+        if (acc.length > 0) {
+          const [{ dialog_node }] = acc;
+          previousSiblingOfSlot = dialog_node;
+        }
         while (iterations < 3) {
           switch (iterations) {
             case 0:
@@ -79,6 +74,7 @@ export default class FileWriter extends flow.AbstractProject {
               nextValue.push({
                 type: Watson.DialogNodeTypes.SLOT,
                 title: slotId,
+                previous_sibling: previousSiblingOfSlot,
                 parent,
                 variable: `$${name}`,
                 dialog_node: slotId,
@@ -142,7 +138,7 @@ export default class FileWriter extends flow.AbstractProject {
    */
   private mapDialogNodesForProject(): Watson.DialogNodes {
     const platformProvider = new PlatformProvider(this.projectData.project.platform, this.projectData);
-    const nodes = Array.from(this.boardStructureByMessages.entries())
+    let nodes = Array.from(this.boardStructureByMessages.entries())
       .reduce((acc: Watson.DialogNodes[], messageAndConnectedIntents): any => {
         const [idOfConnectedMessage, idsOfConnectedIntents] = messageAndConnectedIntents;
         const nodeId = `node_${idOfConnectedMessage}`;
@@ -153,25 +149,21 @@ export default class FileWriter extends flow.AbstractProject {
         const parentNode = this.findParentOfChild(idOfConnectedMessage);
         let previousSibling = null;
         for (const n of acc) {
-          // if they share the same parent, set previous sibling accordingly
+          // if nodes share the same parent, set previous sibling to be previously seen node
           if (n.parent === parentNode) {
             previousSibling = n.dialog_node;
           }
         }
-        // const slotNodes = this.getSlotNodesForConnectedIntentIds(idsOfConnectedIntents, parentNode as string);
-        // const [slotNodeSibling] = slotNodes;
-        // // If there are slot nodes, the previous sibling should be set to the first slot node
-        // if (typeof slotNodeSibling !== "undefined") {
-        //   // @ts-ignore
-        //   previousSibling = slotNodeSibling.dialog_node;
-        // }
-        const type = [].length > 0 ? Watson.DialogNodeTypes.FRAME : Watson.DialogNodeTypes.STANDARD;
+        const slotNodes = this.getSlotNodesForConnectedIntentIds(idsOfConnectedIntents, parentNode as string);
+        const [slotNodeSibling] = slotNodes;
+        if (typeof slotNodeSibling !== "undefined") {
+          slotNodes[0].previous_sibling = nodeId;
+        }
         const message = this.getMessage(idOfConnectedMessage) as flow.Message;
         return [
           ...acc,
-          // ...slotNodes,
           {
-            type,
+            type: Watson.DialogNodeTypes.STANDARD,
             title: message.payload?.nodeName,
             output: platformProvider.create(message),
             parent: parentNode ?? null,
@@ -179,10 +171,26 @@ export default class FileWriter extends flow.AbstractProject {
             conditions: firstCondition,
             dialog_node: nodeId,
           },
+          ...slotNodes,
         ];
       }, []);
-    // @ts-ignore
-    return nodes;
+    // Retroactively fix node type on parents of slot nodes
+    for (const [i, n] of nodes.entries()) {
+      const id = n.dialog_node;
+      for (const m of nodes) {
+        if (m.type !== Watson.DialogNodeTypes.SLOT) {
+          continue;
+        }
+        const { parent: parentOfSlotNode } = m;
+        if (parentOfSlotNode === id) {
+          nodes[i] = {
+            ...n,
+            type: Watson.DialogNodeTypes.FRAME,
+          };
+        }
+      }
+    }
+    return nodes as any;
   }
   /**
    * Strips variable sign from given name
