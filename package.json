@@ -1,52 +1,15 @@
 {
   "name": "botmock-watson-export",
   "version": "2.0.0",
-  "description": "import Botmock projects as Watson Assistant skills",
-  "engines": {
-    "node": ">=12.12.0"
-  },
+  "description": "",
   "scripts": {
-    "test": "jest",
     "start": "ts-node index.ts"
   },
-  "keywords": [
-    "botmock",
-    "watson",
-    "nodejs"
-  ],
-  "jest": {
-    "preset": "ts-jest",
-    "globals": {
-      "ts-jest": {
-        "tsConfig": "tsconfig.json"
-      }
-    }
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/botmock/botmock-watson-export.git"
-  },
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/botmock/botmock-watson-export/issues"
-  },
-  "homepage": "https://github.com/botmock/botmock-watson-export#readme",
   "dependencies": {
-    "@botmock-api/client": "^1.0.0",
-    "@botmock-api/flow": "^0.8.0",
-    "@botmock-api/log": "^0.2.0",
-    "dotenv": "^8.2.0",
-    "fs-extra": "^8.1.0",
-    "uuid": "^3.3.3"
-  },
-  "devDependencies": {
-    "@types/fs-extra": "^8.0.1",
-    "@types/jest": "^25.1.1",
-    "@types/node": "^13.7.0",
-    "@types/uuid": "^3.4.7",
-    "jest": "^24.9.0",
-    "ts-jest": "^25.1.0",
-    "ts-node": "^8.6.2",
-    "typescript": "^3.7.5"
+    "@botmock/export": "^0.12.0",
+    "@types/node": "^14.0.14",
+    "dotenv": "8.2.0",
+    "ts-node": "8.10.2",
+    "typescript": "^3.9.6"
   }
 }
