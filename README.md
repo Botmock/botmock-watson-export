@@ -25,3 +25,5 @@ Running the following commands should allow you to generate restorable content f
 - `npm start`
 
 `./output` should be generated in your project root.
+
+If `dialog_nodes` property is empty in the generated `.json`, this usually indicates that the original Botmock project has no "generic" content.
